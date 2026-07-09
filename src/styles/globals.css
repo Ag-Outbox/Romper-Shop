@@ -1,0 +1,29 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: auto; } /* Lenis controla o scroll */
+  body {
+    @apply bg-ink text-mist font-sans antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { @apply bg-volt text-ink; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .marquee-track { animation: marquee 28s linear infinite; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  /* Respeita quem prefere menos movimento */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+}
