@@ -180,3 +180,31 @@ export async function fetchRelated(product: Product, limit = 4): Promise<Product
   const list = await fetchProductsByCategory(product.categorySlug, 'best_selling');
   return list.filter((p) => p.id !== product.id).slice(0, limit);
 }
+
+export async function searchProducts(query: string, sort: ProductSort = 'relevance'): Promise<Product[]> {
+  const q = query.trim();
+  if (!q) return [];
+
+  if (!isSupabaseConfigured || !supabase) {
+    const low = q.toLowerCase();
+    const list = MOCK_PRODUCTS.filter(
+      (p) =>
+        p.title.toLowerCase().includes(low) ||
+        (p.brand?.toLowerCase().includes(low) ?? false) ||
+        p.categoryName.toLowerCase().includes(low) ||
+        p.description.toLowerCase().includes(low),
+    );
+    return sortProducts(list, sort);
+  }
+
+  // Full-text no Postgres (search_vector já existe no schema, config 'portuguese').
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('status', 'active')
+    .textSearch('search_vector', q, { type: 'websearch', config: 'portuguese' })
+    .limit(48);
+  if (error) throw error;
+  const list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
+  return sortProducts(list, sort);
+}

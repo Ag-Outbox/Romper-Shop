@@ -1,28 +1,44 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../lib/useCart';
 
-/** Cabeçalho fixo com navegação e contador da sacola. Usado nas páginas
- *  internas (produto, checkout). A Home mantém o hero com nav próprio. */
+/** Cabeçalho fixo com busca e contador da sacola. Usado nas páginas internas
+ *  (categoria, busca, produto, checkout). A Home mantém o hero com nav próprio. */
 export default function TopBar() {
   const { count } = useCart();
+  const navigate = useNavigate();
+  const [term, setTerm] = useState('');
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = term.trim();
+    if (v) navigate(`/busca?q=${encodeURIComponent(v)}`);
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ink/80 backdrop-blur-md">
-      <nav className="flex items-center justify-between px-5 md:px-10 h-16">
-        <Link to="/" className="font-display text-xl font-semibold tracking-tight">
+      <nav className="flex items-center gap-4 md:gap-6 px-5 md:px-10 h-16">
+        <Link to="/" className="font-display text-xl font-semibold tracking-tight shrink-0">
           Romper<span className="text-volt">.</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8 text-sm text-fog">
-          <Link className="hover:text-mist transition-colors" to="/#categorias">Categorias</Link>
-          <Link className="hover:text-mist transition-colors" to="/#algoritmo">Em alta</Link>
-          <Link className="hover:text-mist transition-colors" to="/#cod">Pague na entrega</Link>
-          <Link className="hover:text-mist transition-colors" to="/#vender">Vender</Link>
-        </div>
+        <form
+          onSubmit={submit}
+          className="flex flex-1 items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 max-w-xl focus-within:border-volt transition-colors"
+        >
+          <span className="text-fog text-sm">⌕</span>
+          <input
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Buscar produtos…"
+            aria-label="Buscar produtos"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-fog"
+          />
+        </form>
 
         <Link
           to="/checkout"
-          className="relative rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
+          className="relative shrink-0 rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
         >
           Sacola
           {count > 0 && (

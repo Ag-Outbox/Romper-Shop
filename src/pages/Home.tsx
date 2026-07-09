@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
-import { useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '../components/Reveal';
 import SiteFooter from '../components/SiteFooter';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
@@ -28,9 +28,17 @@ const MARQUEE = ['MODA', 'ACHADINHOS', 'CASA', 'TECH', 'BELEZA', 'FITNESS', 'PET
 function Hero() {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
+  const navigate = useNavigate();
+  const [term, setTerm] = useState('');
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], ['0%', reduce ? '0%' : '30%']);
   const op = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
+  const search = (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = term.trim();
+    navigate(v ? `/busca?q=${encodeURIComponent(v)}` : '/busca');
+  };
 
   return (
     <section ref={ref} className="relative min-h-[100svh] flex flex-col justify-between px-5 pt-6 pb-10 md:px-10">
@@ -58,19 +66,21 @@ function Hero() {
           <span className="text-fog">Tudo que</span> você<br />
           <span className="text-volt">procura.</span>
         </h1>
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 sm:items-center max-w-xl">
-          <div className="flex-1 flex items-center rounded-full border border-line bg-surface px-5 py-3">
+        <form onSubmit={search} className="mt-8 flex flex-col sm:flex-row gap-4 sm:items-center max-w-xl">
+          <div className="flex-1 flex items-center rounded-full border border-line bg-surface px-5 py-3 focus-within:border-volt transition-colors">
             <input
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
               className="flex-1 bg-transparent outline-none text-sm placeholder:text-fog"
               placeholder="Busque por moda, achadinhos, gadgets…"
               aria-label="Buscar produtos"
             />
             <span className="font-mono text-xs text-fog">↵</span>
           </div>
-          <button className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+          <button type="submit" className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
             Explorar
           </button>
-        </div>
+        </form>
       </motion.div>
 
       {/* stat strip */}
