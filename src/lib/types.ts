@@ -75,3 +75,43 @@ export interface CartItem {
   sellerSlug: string;
   sellerName: string;
 }
+
+/* ---- Checkout / pedidos ---- */
+
+export interface Address {
+  recipient: string;
+  phone: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement?: string;
+  district: string;
+  city: string;
+  uf: string;
+}
+
+export type OrderPaymentMethod = 'pix' | 'card' | 'cod';
+
+/** Status do sub-pedido (1 por vendedor), espelha order_status do schema. */
+export type SubOrderStatus = 'paid' | 'processing' | 'awaiting_cod';
+
+export interface OrderSubOrder {
+  sellerSlug: string;
+  sellerName: string;
+  items: CartItem[];
+  subtotalCents: number;
+  status: SubOrderStatus;
+}
+
+export interface Order {
+  id: string;
+  createdAt: string;
+  address: Address;
+  paymentMethod: OrderPaymentMethod;
+  isCod: boolean;
+  subOrders: OrderSubOrder[];
+  subtotalCents: number;
+  shippingCents: number;
+  totalCents: number;
+  statusLabel: string;
+}
