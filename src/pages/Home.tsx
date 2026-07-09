@@ -1,7 +1,10 @@
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Reveal from '../components/Reveal';
+import SiteFooter from '../components/SiteFooter';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
+import { getRanking } from '../lib/catalog';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Home
@@ -147,17 +150,19 @@ function AlgorithmTeaser() {
             <div className="flex items-center justify-between mb-5 text-xs font-mono text-fog">
               <span>EM ALTA · ACHADINHOS</span><span className="text-volt">● ao vivo</span>
             </div>
-            {[
-              ['Organizador modular', 92], ['Luminária pôr do sol', 87], ['Kit potes herméticos', 81],
-            ].map(([name, score], i) => (
-              <div key={i} className="flex items-center gap-4 py-3 border-t border-line first:border-0">
+            {getRanking('achadinhos').map((p, i) => (
+              <Link
+                key={p.id}
+                to={`/produto/${p.slug}`}
+                className="group flex items-center gap-4 py-3 border-t border-line first:border-0"
+              >
                 <span className="font-display text-xl text-fog w-6">{i + 1}</span>
-                <span className="flex-1 text-sm">{name}</span>
+                <span className="flex-1 text-sm group-hover:text-volt transition-colors">{p.title}</span>
                 <div className="w-24 h-1 rounded bg-line overflow-hidden">
-                  <div className="h-full bg-volt" style={{ width: `${score}%` }} />
+                  <div className="h-full bg-volt" style={{ width: `${p.score}%` }} />
                 </div>
-                <span className="font-mono text-xs text-volt w-8 text-right">{score}</span>
-              </div>
+                <span className="font-mono text-xs text-volt w-8 text-right">{p.score}</span>
+              </Link>
             ))}
           </div>
         </Reveal>
@@ -214,21 +219,6 @@ function SellerCTA() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="px-5 md:px-10 py-12 border-t border-line flex flex-col md:flex-row justify-between gap-6 text-sm text-fog">
-      <span className="font-display text-lg text-mist">Romper<span className="text-volt">.</span></span>
-      <div className="flex flex-wrap gap-x-8 gap-y-2">
-        <a href="#" className="hover:text-mist">Sobre</a>
-        <a href="#" className="hover:text-mist">Vender</a>
-        <a href="#" className="hover:text-mist">Ajuda</a>
-        <a href="#" className="hover:text-mist">Privacidade</a>
-      </div>
-      <span>© {new Date().getFullYear()} Romper Shop</span>
-    </footer>
-  );
-}
-
 export default function Home() {
   useSmoothScroll();
   return (
@@ -239,7 +229,7 @@ export default function Home() {
       <AlgorithmTeaser />
       <CODBand />
       <SellerCTA />
-      <Footer />
+      <SiteFooter />
     </main>
   );
 }
