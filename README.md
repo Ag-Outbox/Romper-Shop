@@ -60,3 +60,36 @@ src/services/
 > Nota: o schema foi validado sinteticamente com o parser real do Postgres nesta
 > sandbox, mas não foi aplicado a um banco vivo aqui (rede restrita). Rode
 > `supabase db push` no seu ambiente para materializar.
+
+## Frontend — o que já está construído
+
+Fluxo de compra completo sobre a fundação, em React/Vite/TS + Tailwind:
+
+```
+Home ─▶ Categoria ─▶ Produto ─▶ Sacola ─▶ Entrega ─▶ Pagamento (Online/COD) ─▶ Pedido
+```
+
+- **Rotas** (`src/main.tsx`): `/`, `/categoria/:slug`, `/produto/:slug`,
+  `/checkout`, `/pedido/:id`.
+- **Camada de dados** (`src/lib/api.ts`): uma API única para o app. Se o Supabase
+  estiver configurado, faz as queries reais; senão, cai no catálogo mock
+  (`src/lib/catalog.ts`). Os componentes não sabem a origem dos dados.
+- **Carrinho e pedidos** no cliente (`useCart`, `lib/orders`) via localStorage,
+  já modelados como `orders → sub_orders` (split por vendedor). Preços em centavos.
+- **COD** respeitado por produto e com regra de elegibilidade por região
+  (`src/lib/cep.ts`, com autopreenchimento de CEP via ViaCEP).
+
+## Ligar ao Supabase (quando tiver credenciais)
+
+Enquanto não houver `.env`, tudo roda no mock — sem erro. Para usar dados reais:
+
+```bash
+cp .env.example .env          # preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+supabase db push              # aplica as migrations
+psql "$DATABASE_URL" -f supabase/seed.sql   # (ou `supabase db reset`) popula o catálogo
+npm run dev
+```
+
+O `src/lib/supabase.ts` detecta as variáveis automaticamente: preencheu o `.env`,
+o app passa a ler `categories`, `products`, `product_images` e `product_variants`
+— sem tocar em nenhum componente. O `supabase/seed.sql` espelha o catálogo mock.

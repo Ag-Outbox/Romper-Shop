@@ -15,12 +15,12 @@ import { getRanking } from '../lib/catalog';
 --------------------------------------------------------------------------- */
 
 const CATEGORIES = [
-  { name: 'Moda', tag: 'roupas & acessórios', count: '12.4k', span: 'md:col-span-3 md:row-span-2' },
-  { name: 'Achadinhos', tag: 'até R$ 29,90', count: '8.1k', span: 'md:col-span-3' },
-  { name: 'Casa', tag: 'decor & utilidades', count: '5.7k', span: 'md:col-span-2' },
-  { name: 'Tech', tag: 'gadgets & acessórios', count: '3.9k', span: 'md:col-span-1' },
-  { name: 'Beleza', tag: 'skincare & make', count: '4.2k', span: 'md:col-span-2' },
-  { name: 'Fitness', tag: 'treino & bem-estar', count: '2.3k', span: 'md:col-span-4' },
+  { name: 'Moda', slug: 'moda', tag: 'roupas & acessórios', count: '12.4k', span: 'md:col-span-3 md:row-span-2' },
+  { name: 'Achadinhos', slug: 'achadinhos', tag: 'até R$ 29,90', count: '8.1k', span: 'md:col-span-3' },
+  { name: 'Casa', slug: 'casa', tag: 'decor & utilidades', count: '5.7k', span: 'md:col-span-2' },
+  { name: 'Tech', slug: 'tech', tag: 'gadgets & acessórios', count: '3.9k', span: 'md:col-span-1' },
+  { name: 'Beleza', slug: 'beleza', tag: 'skincare & make', count: '4.2k', span: 'md:col-span-2' },
+  { name: 'Fitness', slug: 'fitness', tag: 'treino & bem-estar', count: '2.3k', span: 'md:col-span-4' },
 ];
 
 const MARQUEE = ['MODA', 'ACHADINHOS', 'CASA', 'TECH', 'BELEZA', 'FITNESS', 'PET', 'INFANTIL'];
@@ -110,8 +110,8 @@ function CategoryGrid() {
       <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[160px] md:auto-rows-[200px] gap-3">
         {CATEGORIES.map((c, i) => (
           <Reveal key={c.name} delay={i * 0.05}>
-            <a
-              href="#"
+            <Link
+              to={`/categoria/${c.slug}`}
               className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-xl2 border border-line bg-surface p-5 transition-colors hover:border-volt ${c.span}`}
             >
               <span className="font-mono text-xs text-fog">{c.count} itens</span>
@@ -120,7 +120,7 @@ function CategoryGrid() {
                 <p className="text-sm text-fog">{c.tag}</p>
               </div>
               <span className="absolute right-5 top-5 text-volt opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">↗</span>
-            </a>
+            </Link>
           </Reveal>
         ))}
       </div>

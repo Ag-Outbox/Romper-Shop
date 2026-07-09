@@ -1,18 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
-import { getProductBySlug, getRelated } from '../lib/catalog';
+import ProductCard from '../components/ProductCard';
+import { useAsync } from '../lib/useAsync';
+import { fetchProductBySlug, fetchRelated } from '../lib/api';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
 import type { CartItem, Product, ProductVariant } from '../lib/types';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Página de produto (/produto/:slug)
-   Dados vêm do catálogo mock (lib/catalog) até o Supabase estar ligado.
-   Preços em centavos; formatação só na exibição. COD por produto respeitado.
+   Dados via lib/api (mock agora, Supabase quando configurado). Preços em
+   centavos; formatação só na exibição. COD por produto respeitado.
 --------------------------------------------------------------------------- */
 
 function Stars({ value }: { value: number }) {
@@ -49,39 +51,24 @@ function Gallery({ images, activeIndex, onSelect }: {
         ))}
       </div>
       <div className="flex-1 overflow-hidden rounded-xl2 border border-line bg-surface aspect-square">
-        <img
-          src={main.url}
-          alt={main.alt}
-          className="h-full w-full object-cover"
-        />
+        <img src={main.url} alt={main.alt} className="h-full w-full object-cover" />
       </div>
     </div>
   );
 }
 
-function RelatedCard({ product }: { product: Product }) {
-  const off = discountPercent(product.priceCents, product.compareAtCents);
+function ProductSkeleton() {
   return (
-    <Link
-      to={`/produto/${product.slug}`}
-      className="group rounded-xl2 border border-line bg-surface overflow-hidden transition-colors hover:border-volt"
-    >
-      <div className="aspect-square overflow-hidden bg-ink">
-        <img
-          src={product.images[0].url}
-          alt={product.images[0].alt}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+    <div className="grid lg:grid-cols-2 gap-8 lg:gap-14 pt-6">
+      <div className="aspect-square animate-pulse rounded-xl2 bg-line/30" />
+      <div className="space-y-4">
+        <div className="h-4 w-32 animate-pulse rounded bg-line/30" />
+        <div className="h-10 w-4/5 animate-pulse rounded bg-line/30" />
+        <div className="h-10 w-40 animate-pulse rounded bg-line/30" />
+        <div className="h-11 w-full animate-pulse rounded bg-line/30" />
+        <div className="h-12 w-full animate-pulse rounded-full bg-line/30" />
       </div>
-      <div className="p-4">
-        <p className="text-sm text-mist line-clamp-1 group-hover:text-volt transition-colors">{product.title}</p>
-        <div className="mt-2 flex items-center gap-2">
-          <span className="font-display text-lg">{formatBRL(product.priceCents)}</span>
-          {off && <span className="font-mono text-xs text-ember">-{off}%</span>}
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
@@ -89,27 +76,51 @@ export default function Product() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { add } = useCart();
-  const product = slug ? getProductBySlug(slug) : undefined;
 
-  // Estado de seleção (hooks antes de qualquer return condicional)
-  const [selected, setSelected] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    product?.optionGroups.forEach((g) => {
-      if (g.values.length) init[g.name] = g.values[0];
-    });
-    return init;
-  });
+  const { data: product, loading } = useAsync(
+    () => (slug ? fetchProductBySlug(slug) : Promise.resolve(undefined)),
+    [slug],
+  );
+  const { data: related } = useAsync(
+    () => (product ? fetchRelated(product, 4) : Promise.resolve([])),
+    [product?.id],
+  );
+
+  // Estado de seleção (hooks sempre na mesma ordem, antes de returns).
+  const [selected, setSelected] = useState<Record<string, string>>({});
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState<string | null>(null);
   const [imgOverride, setImgOverride] = useState<number | null>(null);
 
-  // Variação que casa com todas as opções escolhidas.
+  // Reinicializa a seleção quando o produto carrega/muda.
+  useEffect(() => {
+    const init: Record<string, string> = {};
+    product?.optionGroups.forEach((g) => {
+      if (g.values.length) init[g.name] = g.values[0];
+    });
+    setSelected(init);
+    setQty(1);
+    setImgOverride(null);
+  }, [product]);
+
   const variant: ProductVariant | undefined = useMemo(() => {
     if (!product || product.variants.length === 0) return undefined;
     return product.variants.find((v) =>
       Object.entries(selected).every(([k, val]) => v.options[k] === val),
     );
   }, [product, selected]);
+
+  if (loading) {
+    return (
+      <>
+        <TopBar />
+        <main className="px-5 md:px-10 pb-24">
+          <ProductSkeleton />
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
 
   if (!product) {
     return (
@@ -119,10 +130,7 @@ export default function Product() {
           <p className="font-mono text-xs text-volt tracking-widest mb-4">404</p>
           <h1 className="font-display text-4xl md:text-6xl font-semibold">Produto não encontrado</h1>
           <p className="mt-5 text-fog">O item que você procura saiu de linha ou o link está errado.</p>
-          <Link
-            to="/"
-            className="mt-8 inline-block rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors"
-          >
+          <Link to="/" className="mt-8 inline-block rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
             Voltar ao início
           </Link>
         </main>
@@ -136,7 +144,6 @@ export default function Product() {
   const stock = variant?.stock ?? product.stock;
   const activeImg = imgOverride ?? variant?.imageIndex ?? 0;
   const codEligible = product.codAvailable && (!product.codMaxCents || unitCents * qty <= product.codMaxCents);
-  const related = getRelated(product);
 
   const buildCartItem = (): CartItem => ({
     productId: product.id,
@@ -166,7 +173,7 @@ export default function Product() {
 
   const pickOption = (group: string, value: string) => {
     setSelected((s) => ({ ...s, [group]: value }));
-    setImgOverride(null); // deixa a imagem seguir a variação
+    setImgOverride(null);
   };
 
   return (
@@ -174,22 +181,19 @@ export default function Product() {
       <TopBar />
 
       <main className="px-5 md:px-10 pb-24">
-        {/* breadcrumb */}
         <nav className="flex flex-wrap items-center gap-2 py-6 text-sm text-fog">
           <Link to="/" className="hover:text-mist transition-colors">Início</Link>
           <span className="text-line">/</span>
-          <Link to={`/#categorias`} className="hover:text-mist transition-colors">{product.categoryName}</Link>
+          <Link to={`/categoria/${product.categorySlug}`} className="hover:text-mist transition-colors">{product.categoryName}</Link>
           <span className="text-line">/</span>
           <span className="text-mist line-clamp-1">{product.title}</span>
         </nav>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-14">
-          {/* galeria */}
           <Reveal y={16}>
             <Gallery images={product.images} activeIndex={activeImg} onSelect={setImgOverride} />
           </Reveal>
 
-          {/* info */}
           <div className="flex flex-col">
             <p className="font-mono text-xs text-volt tracking-widest mb-3">
               {product.brand ? `${product.brand.toUpperCase()} · ` : ''}{product.categoryName.toUpperCase()}
@@ -206,25 +210,20 @@ export default function Product() {
               <span className="text-fog">{product.salesCount.toLocaleString('pt-BR')} vendidos</span>
             </div>
 
-            {/* preço */}
             <div className="mt-6 flex items-end gap-3">
               <span className="font-display text-4xl md:text-5xl font-semibold">{formatBRL(unitCents)}</span>
               {product.compareAtCents && product.compareAtCents > unitCents && (
                 <span className="mb-1 text-fog line-through">{formatBRL(product.compareAtCents)}</span>
               )}
-              {off && (
-                <span className="mb-1.5 rounded-full bg-ember/15 px-2.5 py-1 font-mono text-xs text-ember">-{off}%</span>
-              )}
+              {off && <span className="mb-1.5 rounded-full bg-ember/15 px-2.5 py-1 font-mono text-xs text-ember">-{off}%</span>}
             </div>
 
-            {/* badge COD */}
             {product.codAvailable && (
               <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-volt/40 bg-volt/10 px-4 py-2 text-sm text-volt">
                 <span aria-hidden>◎</span> Pague na entrega disponível
               </div>
             )}
 
-            {/* seletor de variação */}
             {product.optionGroups.map((g) => (
               <div key={g.name} className="mt-7">
                 <div className="mb-3 flex items-center gap-2 text-sm">
@@ -240,9 +239,7 @@ export default function Product() {
                         onClick={() => pickOption(g.name, val)}
                         aria-pressed={active}
                         className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                          active
-                            ? 'border-volt bg-volt text-ink font-medium'
-                            : 'border-line text-mist hover:border-fog'
+                          active ? 'border-volt bg-volt text-ink font-medium' : 'border-line text-mist hover:border-fog'
                         }`}
                       >
                         {val}
@@ -253,46 +250,24 @@ export default function Product() {
               </div>
             ))}
 
-            {/* quantidade + estoque */}
             <div className="mt-7 flex items-center gap-5">
               <div className="flex items-center rounded-full border border-line">
-                <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  aria-label="Diminuir quantidade"
-                  className="h-11 w-11 text-lg text-fog hover:text-volt transition-colors disabled:opacity-40"
-                  disabled={qty <= 1}
-                >
-                  −
-                </button>
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Diminuir quantidade" disabled={qty <= 1}
+                  className="h-11 w-11 text-lg text-fog hover:text-volt transition-colors disabled:opacity-40">−</button>
                 <span className="w-10 text-center text-sm tabular-nums">{qty}</span>
-                <button
-                  onClick={() => setQty((q) => Math.min(stock, q + 1))}
-                  aria-label="Aumentar quantidade"
-                  className="h-11 w-11 text-lg text-fog hover:text-volt transition-colors disabled:opacity-40"
-                  disabled={qty >= stock}
-                >
-                  +
-                </button>
+                <button onClick={() => setQty((q) => Math.min(stock, q + 1))} aria-label="Aumentar quantidade" disabled={qty >= stock}
+                  className="h-11 w-11 text-lg text-fog hover:text-volt transition-colors disabled:opacity-40">+</button>
               </div>
-              <span className="font-mono text-xs text-fog">
-                {stock > 0 ? `${stock} em estoque` : 'Esgotado'}
-              </span>
+              <span className="font-mono text-xs text-fog">{stock > 0 ? `${stock} em estoque` : 'Esgotado'}</span>
             </div>
 
-            {/* ações */}
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={addToBag}
-                disabled={stock <= 0}
-                className="flex-1 rounded-full border border-line px-7 py-3.5 text-sm font-medium hover:border-volt hover:text-volt transition-colors disabled:opacity-40"
-              >
+              <button onClick={addToBag} disabled={stock <= 0}
+                className="flex-1 rounded-full border border-line px-7 py-3.5 text-sm font-medium hover:border-volt hover:text-volt transition-colors disabled:opacity-40">
                 Adicionar à sacola
               </button>
-              <button
-                onClick={buyNow}
-                disabled={stock <= 0}
-                className="flex-1 rounded-full bg-volt px-7 py-3.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-40"
-              >
+              <button onClick={buyNow} disabled={stock <= 0}
+                className="flex-1 rounded-full bg-volt px-7 py-3.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-40">
                 Comprar agora
               </button>
             </div>
@@ -304,7 +279,6 @@ export default function Product() {
               </p>
             )}
 
-            {/* vendedor */}
             <div className="mt-8 flex items-center justify-between rounded-xl2 border border-line bg-surface p-4">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-volt/15 font-display text-volt">
@@ -322,7 +296,6 @@ export default function Product() {
           </div>
         </div>
 
-        {/* descrição */}
         <section className="mt-16 md:mt-24 grid md:grid-cols-2 gap-10 border-t border-line pt-12">
           <Reveal>
             <div>
@@ -349,16 +322,15 @@ export default function Product() {
           </Reveal>
         </section>
 
-        {/* relacionados */}
-        {related.length > 0 && (
+        {related && related.length > 0 && (
           <section className="mt-16 md:mt-24">
             <Reveal>
               <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">Você também pode gostar</h2>
             </Reveal>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {related.map((p, i) => (
                 <Reveal key={p.id} delay={i * 0.05}>
-                  <RelatedCard product={p} />
+                  <ProductCard product={p} />
                 </Reveal>
               ))}
             </div>
@@ -366,7 +338,6 @@ export default function Product() {
         )}
       </main>
 
-      {/* toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
