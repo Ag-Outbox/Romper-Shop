@@ -63,11 +63,25 @@ src/services/
 
 ## Frontend — o que já está construído
 
-Fluxo de compra completo sobre a fundação, em React/Vite/TS + Tailwind:
+Fluxo de compra completo + contas e dashboards, em React/Vite/TS + Tailwind:
 
 ```
-Home ─▶ Categoria ─▶ Produto ─▶ Sacola ─▶ Entrega ─▶ Pagamento (Online/COD) ─▶ Pedido
+Home ─▶ Busca ─▶ Categoria ─▶ Produto ─▶ Sacola ─▶ Entrega ─▶ Pagamento (Online/COD) ─▶ Pedido
+                                                      dashboards: /conta · /vendedor · /admin
 ```
+
+### Auth e papéis (Supabase-ready)
+
+`src/lib/auth.tsx` usa o Supabase Auth quando configurado (papel lido em
+`profiles.role`) e cai num **mock em localStorage** caso contrário. Rotas
+protegidas por `RequireAuth`. No modo mock, a tela `/entrar` oferece login de
+1 clique com contas de demonstração:
+
+| Papel | E-mail | Senha |
+|-------|--------|-------|
+| Comprador | `comprador@romper.shop` | `123456` |
+| Vendedor  | `vendedor@romper.shop`  | `123456` |
+| Admin     | `admin@romper.shop`     | `123456` |
 
 - **Rotas** (`src/main.tsx`): `/`, `/categoria/:slug`, `/produto/:slug`,
   `/checkout`, `/pedido/:id`.

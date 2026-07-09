@@ -24,6 +24,11 @@ export function getOrder(id: string): Order | undefined {
   return readAll().find((o) => o.id === id);
 }
 
+/** Todos os pedidos deste dispositivo, mais recentes primeiro. */
+export function listOrders(): Order[] {
+  return readAll();
+}
+
 /** Nº de pedido curto e legível (ex.: RS-L  Q9F3K). */
 export function newOrderId(): string {
   return `RS-${Date.now().toString(36).toUpperCase()}`;

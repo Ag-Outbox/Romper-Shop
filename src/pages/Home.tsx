@@ -5,6 +5,9 @@ import Reveal from '../components/Reveal';
 import SiteFooter from '../components/SiteFooter';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
 import { getRanking } from '../lib/catalog';
+import { useAuth, type Role } from '../lib/auth';
+
+const ACCOUNT_PATH: Record<Role, string> = { buyer: '/conta', seller: '/vendedor', admin: '/admin' };
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Home
@@ -29,6 +32,7 @@ function Hero() {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [term, setTerm] = useState('');
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], ['0%', reduce ? '0%' : '30%']);
@@ -51,9 +55,12 @@ function Hero() {
           <a className="hover:text-mist transition-colors" href="#cod">Pague na entrega</a>
           <a className="hover:text-mist transition-colors" href="#vender">Vender</a>
         </div>
-        <button className="rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors">
-          Entrar
-        </button>
+        <Link
+          to={user ? ACCOUNT_PATH[user.role] : '/entrar'}
+          className="rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
+        >
+          {user ? user.fullName.split(' ')[0] : 'Entrar'}
+        </Link>
       </nav>
 
       {/* hero thesis */}
@@ -216,12 +223,12 @@ function SellerCTA() {
             </p>
           </div>
           <div className="flex gap-4">
-            <button className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+            <Link to="/vendedor" className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
               Abrir loja
-            </button>
-            <button className="rounded-full border border-line px-7 py-3 text-sm hover:border-volt hover:text-volt transition-colors">
+            </Link>
+            <Link to="/vendedor" className="rounded-full border border-line px-7 py-3 text-sm hover:border-volt hover:text-volt transition-colors">
               Importar dropship
-            </button>
+            </Link>
           </div>
         </div>
       </Reveal>

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../lib/useCart';
+import { useAuth, type Role } from '../lib/auth';
 
-/** Cabeçalho fixo com busca e contador da sacola. Usado nas páginas internas
- *  (categoria, busca, produto, checkout). A Home mantém o hero com nav próprio. */
+const ACCOUNT_PATH: Record<Role, string> = { buyer: '/conta', seller: '/vendedor', admin: '/admin' };
+
+/** Cabeçalho fixo com busca, conta e contador da sacola. Usado nas páginas
+ *  internas (categoria, busca, produto, checkout). A Home mantém o hero próprio. */
 export default function TopBar() {
   const { count } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [term, setTerm] = useState('');
 
@@ -35,6 +39,13 @@ export default function TopBar() {
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-fog"
           />
         </form>
+
+        <Link
+          to={user ? ACCOUNT_PATH[user.role] : '/entrar'}
+          className="hidden sm:block shrink-0 rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
+        >
+          {user ? user.fullName.split(' ')[0] : 'Entrar'}
+        </Link>
 
         <Link
           to="/checkout"
