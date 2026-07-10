@@ -24,6 +24,50 @@ export interface Category {
 
 export type ProductSort = 'relevance' | 'price_asc' | 'price_desc' | 'best_selling' | 'top_rated';
 
+/** Filtros aplicáveis a listagem de categoria e busca. */
+export interface ProductFilters {
+  priceMinCents?: number;
+  priceMaxCents?: number;
+  minRating?: number;
+  codOnly?: boolean;
+  discountOnly?: boolean;
+}
+
+export interface ProductQueryOptions {
+  sort?: ProductSort;
+  filters?: ProductFilters;
+  /** Página 1-based. */
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PagedProducts {
+  items: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+const DEFAULT_PAGE_SIZE = 12;
+
+function matchesFilters(p: Product, f?: ProductFilters): boolean {
+  if (!f) return true;
+  if (f.priceMinCents != null && p.priceCents < f.priceMinCents) return false;
+  if (f.priceMaxCents != null && p.priceCents > f.priceMaxCents) return false;
+  if (f.minRating != null && p.ratingAvg < f.minRating) return false;
+  if (f.codOnly && !p.codAvailable) return false;
+  if (f.discountOnly && !(p.compareAtCents && p.compareAtCents > p.priceCents)) return false;
+  return true;
+}
+
+function paginate(list: Product[], page: number, pageSize: number): PagedProducts {
+  const total = list.length;
+  const start = (page - 1) * pageSize;
+  const items = list.slice(start, start + pageSize);
+  return { items, total, page, pageSize, hasMore: start + items.length < total };
+}
+
 /* ----------------------------- Mapeamento DB -> Product --------------------- */
 
 interface VariantRow {
@@ -163,19 +207,34 @@ export async function fetchProductBySlug(slug: string): Promise<Product | undefi
   return data ? rowToProduct(data as unknown as ProductRow) : undefined;
 }
 
-export async function fetchProductsByCategory(slug: string, sort: ProductSort = 'relevance'): Promise<Product[]> {
+export async function fetchProductsByCategory(slug: string, options: ProductQueryOptions = {}): Promise<PagedProducts> {
+  const { sort = 'relevance', filters, page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
+
   if (!isSupabaseConfigured || !supabase) {
-    const list = MOCK_PRODUCTS.filter((p) => p.categorySlug === slug);
-    return sortProducts(list, sort);
+    const list = sortProducts(
+      MOCK_PRODUCTS.filter((p) => p.categorySlug === slug && matchesFilters(p, filters)),
+      sort,
+    );
+    return paginate(list, page, pageSize);
   }
-  const { data, error } = await supabase
+
+  let q = supabase
     .from('products')
-    .select(PRODUCT_SELECT)
+    .select(PRODUCT_SELECT, { count: 'exact' })
     .eq('status', 'active')
     .eq('categories.slug', slug);
+  if (filters?.priceMinCents != null) q = q.gte('price_cents', filters.priceMinCents);
+  if (filters?.priceMaxCents != null) q = q.lte('price_cents', filters.priceMaxCents);
+  if (filters?.minRating != null) q = q.gte('rating_avg', filters.minRating);
+  if (filters?.codOnly) q = q.eq('cod_available', true);
+  // discountOnly (compare_at_cents > price_cents) compara duas colunas — o
+  // query builder do supabase-js não faz isso direto; precisa de uma view
+  // ou RPC no banco. Aplicamos como refinamento client-side abaixo.
+  const { data, error, count } = await q.range((page - 1) * pageSize, page * pageSize - 1);
   if (error) throw error;
-  const list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
-  return sortProducts(list, sort);
+  let list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
+  if (filters?.discountOnly) list = list.filter((p) => matchesFilters(p, { discountOnly: true }));
+  return { items: sortProducts(list, sort), total: count ?? list.length, page, pageSize, hasMore: page * pageSize < (count ?? 0) };
 }
 
 export async function fetchProductById(id: string): Promise<Product | undefined> {
@@ -191,8 +250,8 @@ export async function fetchProductById(id: string): Promise<Product | undefined>
 
 export async function fetchRelated(product: Product, limit = 4): Promise<Product[]> {
   if (!isSupabaseConfigured || !supabase) return mockRelated(product, limit);
-  const list = await fetchProductsByCategory(product.categorySlug, 'best_selling');
-  return list.filter((p) => p.id !== product.id).slice(0, limit);
+  const { items } = await fetchProductsByCategory(product.categorySlug, { sort: 'best_selling', pageSize: limit + 1 });
+  return items.filter((p) => p.id !== product.id).slice(0, limit);
 }
 
 export interface StoreInfo {
@@ -259,32 +318,42 @@ export async function fetchStore(slug: string): Promise<{ seller: StoreInfo; pro
   };
 }
 
-export async function searchProducts(query: string, sort: ProductSort = 'relevance'): Promise<Product[]> {
+export async function searchProducts(query: string, options: ProductQueryOptions = {}): Promise<PagedProducts> {
+  const { sort = 'relevance', filters, page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
   const q = query.trim();
-  if (!q) return [];
+  if (!q) return { items: [], total: 0, page, pageSize, hasMore: false };
 
   if (!isSupabaseConfigured || !supabase) {
     const low = q.toLowerCase();
-    const list = MOCK_PRODUCTS.filter(
-      (p) =>
-        p.title.toLowerCase().includes(low) ||
-        (p.brand?.toLowerCase().includes(low) ?? false) ||
-        p.categoryName.toLowerCase().includes(low) ||
-        p.description.toLowerCase().includes(low),
+    const list = sortProducts(
+      MOCK_PRODUCTS.filter(
+        (p) =>
+          (p.title.toLowerCase().includes(low) ||
+            (p.brand?.toLowerCase().includes(low) ?? false) ||
+            p.categoryName.toLowerCase().includes(low) ||
+            p.description.toLowerCase().includes(low)) &&
+          matchesFilters(p, filters),
+      ),
+      sort,
     );
-    return sortProducts(list, sort);
+    return paginate(list, page, pageSize);
   }
 
   // Full-text no Postgres (search_vector já existe no schema, config 'portuguese').
-  const { data, error } = await supabase
+  let sq = supabase
     .from('products')
-    .select(PRODUCT_SELECT)
+    .select(PRODUCT_SELECT, { count: 'exact' })
     .eq('status', 'active')
-    .textSearch('search_vector', q, { type: 'websearch', config: 'portuguese' })
-    .limit(48);
+    .textSearch('search_vector', q, { type: 'websearch', config: 'portuguese' });
+  if (filters?.priceMinCents != null) sq = sq.gte('price_cents', filters.priceMinCents);
+  if (filters?.priceMaxCents != null) sq = sq.lte('price_cents', filters.priceMaxCents);
+  if (filters?.minRating != null) sq = sq.gte('rating_avg', filters.minRating);
+  if (filters?.codOnly) sq = sq.eq('cod_available', true);
+  const { data, error, count } = await sq.range((page - 1) * pageSize, page * pageSize - 1);
   if (error) throw error;
-  const list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
-  return sortProducts(list, sort);
+  let list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
+  if (filters?.discountOnly) list = list.filter((p) => matchesFilters(p, { discountOnly: true }));
+  return { items: sortProducts(list, sort), total: count ?? list.length, page, pageSize, hasMore: page * pageSize < (count ?? 0) };
 }
 
 /* ----------------------------- Avaliações ----------------------------------- */
