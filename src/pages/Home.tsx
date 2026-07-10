@@ -47,7 +47,16 @@ function Hero() {
   };
 
   return (
-    <section ref={ref} className="relative min-h-[100svh] flex flex-col justify-between px-5 pt-6 pb-10 md:px-10">
+    <section ref={ref} className="relative min-h-[100svh] flex flex-col justify-between px-5 pt-6 pb-10 md:px-10 overflow-hidden">
+      {/* atmosfera: glow volt + monograma gigante vazado */}
+      <div aria-hidden className="pointer-events-none absolute -top-1/4 -right-1/4 h-[52rem] w-[52rem] rounded-full bg-volt/[0.05] blur-3xl" />
+      <div
+        aria-hidden
+        className="pointer-events-none select-none absolute -right-16 md:right-0 top-1/2 -translate-y-1/2 font-display font-semibold leading-none text-outline text-[22rem] md:text-[36rem]"
+      >
+        R.
+      </div>
+
       {/* topbar */}
       <nav className="flex items-center justify-between">
         <span className="font-display text-xl font-semibold tracking-tight">Romper<span className="text-volt">.</span></span>
@@ -71,8 +80,9 @@ function Hero() {
       </nav>
 
       {/* hero thesis */}
-      <motion.div style={{ y, opacity: op }} className="flex-1 flex flex-col justify-center">
+      <motion.div style={{ y, opacity: op }} className="relative flex-1 flex flex-col justify-center">
         <p className="font-mono text-xs md:text-sm text-volt mb-5 tracking-widest">
+          <span aria-hidden className="mr-3 inline-block h-2 w-2 rounded-full bg-volt align-middle animate-pulse" />
           MARKETPLACE MULTI-CATEGORIA
         </p>
         <h1 className="font-display text-hero font-semibold text-balance">
@@ -81,7 +91,7 @@ function Hero() {
           <span className="text-volt">procura.</span>
         </h1>
         <form onSubmit={search} className="mt-8 flex flex-col sm:flex-row gap-4 sm:items-center max-w-xl">
-          <div className="flex-1 flex items-center rounded-full border border-line bg-surface px-5 py-3 focus-within:border-volt transition-colors">
+          <div className="flex-1 flex items-center rounded-full border border-line bg-surface/80 backdrop-blur px-5 py-3 transition-all duration-300 focus-within:border-volt focus-within:shadow-volt">
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
@@ -91,17 +101,23 @@ function Hero() {
             />
             <span className="font-mono text-xs text-fog">↵</span>
           </div>
-          <button type="submit" className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+          <button
+            type="submit"
+            className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink transition-all duration-300 ease-smooth hover:bg-volt-dim hover:shadow-volt hover:-translate-y-0.5"
+          >
             Explorar
           </button>
         </form>
       </motion.div>
 
       {/* stat strip */}
-      <div className="flex flex-wrap gap-x-10 gap-y-3 text-sm text-fog">
-        <span><b className="text-mist">36k+</b> produtos</span>
-        <span><b className="text-mist">2.1k</b> vendedores</span>
-        <span><b className="text-mist">Pague na entrega</b> disponível</span>
+      <div className="relative flex flex-wrap gap-x-12 gap-y-4 border-t border-line pt-6 text-sm text-fog">
+        {([['36k+', 'produtos'], ['2.1k', 'vendedores'], ['COD', 'pague na entrega']] as const).map(([n, l]) => (
+          <span key={l} className="flex items-baseline gap-2.5">
+            <b className="font-display text-2xl md:text-3xl font-semibold text-mist tabular-nums">{n}</b>
+            <span className="font-mono text-xs tracking-widest uppercase">{l}</span>
+          </span>
+        ))}
       </div>
     </section>
   );
@@ -110,11 +126,12 @@ function Hero() {
 function Marquee() {
   const items = [...MARQUEE, ...MARQUEE];
   return (
-    <div className="border-y border-line overflow-hidden py-4 select-none">
+    <div className="border-y border-line overflow-hidden py-5 select-none">
       <div className="marquee-track flex whitespace-nowrap gap-8">
         {items.map((w, i) => (
-          <span key={i} className="font-display text-2xl md:text-4xl font-medium text-fog flex items-center gap-8">
-            {w} <span className="text-volt">✦</span>
+          <span key={i} className="font-display text-2xl md:text-4xl font-semibold flex items-center gap-8">
+            <span className={i % 2 === 0 ? 'text-mist' : 'text-outline'}>{w}</span>
+            <span className="text-volt text-lg">✦</span>
           </span>
         ))}
       </div>
@@ -136,10 +153,17 @@ function CategoryGrid() {
           <Reveal key={c.name} delay={i * 0.05} className={c.span}>
             <Link
               to={`/categoria/${c.slug}`}
-              className="group relative flex h-full flex-col justify-between overflow-hidden rounded-xl2 border border-line bg-surface p-5 transition-colors hover:border-volt"
+              className="group relative flex h-full flex-col justify-between overflow-hidden rounded-xl2 border border-line card-grad p-5 transition-all duration-300 ease-smooth hover:border-volt hover:-translate-y-1 hover:shadow-lift"
             >
-              <span className="font-mono text-xs text-fog">{c.count} itens</span>
-              <div>
+              {/* numeral editorial vazado — vira volt no hover */}
+              <span
+                aria-hidden
+                className="pointer-events-none select-none absolute -bottom-4 -right-1 font-display font-semibold leading-none text-7xl md:text-8xl text-outline transition-all duration-300 group-hover:text-outline-volt"
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="relative font-mono text-xs text-fog">{c.count} itens</span>
+              <div className="relative">
                 <h3 className="font-display text-2xl md:text-3xl font-medium group-hover:text-volt transition-colors">{c.name}</h3>
                 <p className="text-sm text-fog">{c.tag}</p>
               </div>
@@ -170,7 +194,7 @@ function AlgorithmTeaser() {
           </div>
         </Reveal>
         <Reveal delay={0.1}>
-          <div className="rounded-xl2 border border-line bg-surface p-6">
+          <div className="rounded-xl2 border border-line card-grad p-6 shadow-lift">
             <div className="flex items-center justify-between mb-5 text-xs font-mono text-fog">
               <span>EM ALTA · ACHADINHOS</span><span className="text-volt">● ao vivo</span>
             </div>
@@ -197,7 +221,14 @@ function AlgorithmTeaser() {
 
 function CODBand() {
   return (
-    <section id="cod" className="mx-5 md:mx-10 my-10 rounded-xl2 bg-volt text-ink p-8 md:p-14">
+    <section id="cod" className="relative mx-5 md:mx-10 my-10 overflow-hidden rounded-xl2 bg-volt text-ink p-8 md:p-14">
+      {/* marca d'água gigante do símbolo COD */}
+      <span
+        aria-hidden
+        className="pointer-events-none select-none absolute -right-10 -bottom-24 font-display leading-none text-[14rem] md:text-[22rem] text-ink/10"
+      >
+        ◎
+      </span>
       <Reveal>
         <p className="font-mono text-xs tracking-widest mb-4">SEM CARTÃO? SEM PROBLEMA.</p>
         <h2 className="font-display text-4xl md:text-7xl font-semibold max-w-3xl text-balance">
@@ -207,7 +238,7 @@ function CODBand() {
           Cash on Delivery integrado: peça agora e pague só quando o produto chegar na sua
           porta, onde a modalidade estiver disponível.
         </p>
-        <button className="mt-8 rounded-full bg-ink px-7 py-3 text-sm font-semibold text-volt hover:bg-black transition-colors">
+        <button className="mt-8 rounded-full bg-ink px-7 py-3 text-sm font-semibold text-volt transition-all duration-300 ease-smooth hover:bg-black hover:-translate-y-0.5">
           Como funciona
         </button>
       </Reveal>

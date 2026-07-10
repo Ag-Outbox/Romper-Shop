@@ -15,8 +15,9 @@ export default {
         ember: '#FF5A3C',      // acento secundário (promoções/COD)
       },
       fontFamily: {
-        // display marcante + corpo legível + mono utilitário
-        display: ['"Clash Display"', 'Georgia', 'serif'],
+        // display marcante + corpo legível + mono utilitário.
+        // Space Grotesk (auto-hospedada) segura o display se a CDN da Clash falhar.
+        display: ['"Clash Display"', '"Space Grotesk"', 'system-ui', 'sans-serif'],
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
@@ -24,6 +25,10 @@ export default {
         hero: ['clamp(3rem, 12vw, 12rem)', { lineHeight: '0.88', letterSpacing: '-0.03em' }],
       },
       borderRadius: { xl2: '1.25rem' },
+      boxShadow: {
+        volt: '0 0 50px -12px rgba(204, 255, 0, 0.45)',
+        lift: '0 24px 48px -24px rgba(0, 0, 0, 0.7)',
+      },
       transitionTimingFunction: {
         smooth: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },

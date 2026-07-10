@@ -5,6 +5,7 @@ import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
+import SmartImage from '../components/SmartImage';
 import { useAsync } from '../lib/useAsync';
 import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductBySlug, fetchRelated, fetchReviews, submitReview } from '../lib/api';
@@ -32,10 +33,11 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-function Gallery({ images, activeIndex, onSelect }: {
+function Gallery({ images, activeIndex, onSelect, title }: {
   images: Product['images'];
   activeIndex: number;
   onSelect: (i: number) => void;
+  title: string;
 }) {
   const main = images[activeIndex] ?? images[0];
   return (
@@ -47,17 +49,20 @@ function Gallery({ images, activeIndex, onSelect }: {
             onClick={() => onSelect(i)}
             aria-label={`Ver imagem ${i + 1}`}
             aria-current={i === activeIndex}
-            className={`shrink-0 h-16 w-16 md:h-20 md:w-20 overflow-hidden rounded-lg border bg-surface transition-colors ${
+            className={`shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-lg border transition-colors ${
               i === activeIndex ? 'border-volt' : 'border-line hover:border-fog'
             }`}
           >
-            <img src={im.url} alt={im.alt} loading="lazy" className="h-full w-full object-cover" />
+            <SmartImage src={im.url} alt={im.alt} label={title} className="h-full w-full rounded-lg" />
           </button>
         ))}
       </div>
-      <div className="flex-1 overflow-hidden rounded-xl2 border border-line bg-surface aspect-square">
-        <img src={main.url} alt={main.alt} className="h-full w-full object-cover" />
-      </div>
+      <SmartImage
+        src={main.url}
+        alt={main.alt}
+        label={title}
+        className="flex-1 rounded-xl2 border border-line aspect-square"
+      />
     </div>
   );
 }
@@ -303,7 +308,7 @@ export default function Product() {
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-14">
           <Reveal y={16}>
-            <Gallery images={product.images} activeIndex={activeImg} onSelect={setImgOverride} />
+            <Gallery images={product.images} activeIndex={activeImg} onSelect={setImgOverride} title={product.title} />
           </Reveal>
 
           <div className="flex flex-col">
@@ -405,7 +410,7 @@ export default function Product() {
                 Adicionar à sacola
               </button>
               <button onClick={buyNow} disabled={stock <= 0}
-                className="flex-1 rounded-full bg-volt px-7 py-3.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-40">
+                className="flex-1 rounded-full bg-volt px-7 py-3.5 text-sm font-semibold text-ink transition-all duration-300 ease-smooth hover:bg-volt-dim hover:shadow-volt hover:-translate-y-0.5 disabled:opacity-40">
                 Comprar agora
               </button>
             </div>

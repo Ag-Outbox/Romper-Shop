@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SmartImage from './SmartImage';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useFavorites } from '../lib/useFavorites';
 import type { Product } from '../lib/types';
@@ -12,14 +13,15 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       to={`/produto/${product.slug}`}
-      className="group flex flex-col rounded-xl2 border border-line bg-surface overflow-hidden transition-colors hover:border-volt"
+      className="group flex flex-col rounded-xl2 border border-line card-grad overflow-hidden transition-all duration-300 ease-smooth hover:border-volt hover:-translate-y-1 hover:shadow-lift"
     >
       <div className="relative aspect-square overflow-hidden bg-ink">
-        <img
+        <SmartImage
           src={product.images[0]?.url}
           alt={product.images[0]?.alt ?? product.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          label={product.title}
+          className="absolute inset-0"
+          imgClassName="transition-transform duration-700 ease-smooth group-hover:scale-105"
         />
         {product.codAvailable && (
           <span className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 font-mono text-[10px] text-volt backdrop-blur">
@@ -46,9 +48,9 @@ export default function ProductCard({ product }: { product: Product }) {
         <p className="text-sm text-mist line-clamp-2 group-hover:text-volt transition-colors">{product.title}</p>
         <div className="mt-auto pt-3">
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-lg">{formatBRL(product.priceCents)}</span>
+            <span className="font-display text-lg tabular-nums">{formatBRL(product.priceCents)}</span>
             {product.compareAtCents && product.compareAtCents > product.priceCents && (
-              <span className="text-xs text-fog line-through">{formatBRL(product.compareAtCents)}</span>
+              <span className="text-xs text-fog line-through tabular-nums">{formatBRL(product.compareAtCents)}</span>
             )}
           </div>
           <p className="mt-1 font-mono text-xs text-fog">
