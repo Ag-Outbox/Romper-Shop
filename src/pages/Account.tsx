@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import ProductCard from '../components/ProductCard';
+import Reveal from '../components/Reveal';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
 import { useAsync } from '../lib/useAsync';
@@ -27,12 +28,14 @@ export default function Account() {
 
   return (
     <DashboardShell title={`Olá, ${user?.fullName.split(' ')[0] ?? ''}`} subtitle="Seus pedidos e informações">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="PEDIDOS" value={orders.length} />
-        <Stat label="TOTAL GASTO" value={formatBRL(totalSpent)} />
-        <Stat label="REPUTAÇÃO" value="100" hint="Boa — habilita COD" />
-        <Stat label="RECUSAS COD" value="0" />
-      </div>
+      <Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Stat label="PEDIDOS" value={orders.length} />
+          <Stat label="TOTAL GASTO" value={formatBRL(totalSpent)} />
+          <Stat label="REPUTAÇÃO" value="100" hint="Boa — habilita COD" />
+          <Stat label="RECUSAS COD" value="0" />
+        </div>
+      </Reveal>
 
       {user?.role === 'buyer' && (
         <div className="mt-6 flex flex-wrap gap-3">
@@ -73,7 +76,7 @@ export default function Account() {
                   <span className={`rounded-full border px-3 py-1 font-mono text-xs ${o.isCod ? 'border-volt/40 text-volt' : 'border-line text-fog'}`}>
                     {o.isCod ? 'Pague na entrega' : 'Pago'}
                   </span>
-                  <span className="font-display text-lg">{formatBRL(o.totalCents)}</span>
+                  <span className="font-display text-lg tabular-nums">{formatBRL(o.totalCents)}</span>
                 </Link>
               );
             })}
@@ -98,7 +101,11 @@ export default function Account() {
 
         {favorites && favorites.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {favorites.map((p) => <ProductCard key={p.id} product={p} />)}
+            {favorites.map((p, i) => (
+              <Reveal key={p.id} delay={Math.min(i, 8) * 0.04} y={16}>
+                <ProductCard product={p} />
+              </Reveal>
+            ))}
           </div>
         )}
       </section>

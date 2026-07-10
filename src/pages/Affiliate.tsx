@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import Reveal from '../components/Reveal';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
 import { becomeAffiliate, getAffiliateByProfile, listCommissions, withdrawAffiliateBalance } from '../lib/affiliates';
@@ -73,12 +74,14 @@ export default function Affiliate() {
 
   return (
     <DashboardShell title="Programa de afiliados" subtitle={`Código ${affiliate.code} · comissão de ${affiliate.commissionPercent}% por venda`}>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="CLIQUES" value={affiliate.clicks} />
-        <Stat label="COMISSÃO PENDENTE" value={formatBRL(affiliate.pendingCents)} hint="pedidos ainda não entregues" />
-        <Stat label="COMISSÃO CONFIRMADA" value={formatBRL(affiliate.balanceCents)} hint="disponível para saque" />
-        <Stat label="COMISSÃO" value={`${affiliate.commissionPercent}%`} hint="sobre o subtotal indicado" />
-      </div>
+      <Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Stat label="CLIQUES" value={affiliate.clicks} />
+          <Stat label="COMISSÃO PENDENTE" value={formatBRL(affiliate.pendingCents)} hint="pedidos ainda não entregues" />
+          <Stat label="COMISSÃO CONFIRMADA" value={formatBRL(affiliate.balanceCents)} hint="disponível para saque" />
+          <Stat label="COMISSÃO" value={`${affiliate.commissionPercent}%`} hint="sobre o subtotal indicado" />
+        </div>
+      </Reveal>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -96,7 +99,7 @@ export default function Affiliate() {
           {payouts.slice(0, 3).map((p) => (
             <div key={p.id} className="flex items-center justify-between text-xs text-fog">
               <span>Saque solicitado em {new Date(p.requestedAt).toLocaleDateString('pt-BR')}</span>
-              <span className="font-mono">{formatBRL(p.amountCents)} · {p.status === 'paid' ? 'pago' : 'pendente'}</span>
+              <span className="font-mono tabular-nums">{formatBRL(p.amountCents)} · {p.status === 'paid' ? 'pago' : 'pendente'}</span>
             </div>
           ))}
         </div>
@@ -134,7 +137,7 @@ export default function Affiliate() {
                   <span className={`rounded-full px-3 py-1 font-mono text-xs ${c.status === 'confirmed' ? 'bg-volt/15 text-volt' : 'border border-line text-fog'}`}>
                     {c.status === 'confirmed' ? 'confirmada' : 'pendente'}
                   </span>
-                  <span className="font-display text-lg">{formatBRL(c.amountCents)}</span>
+                  <span className="font-display text-lg tabular-nums">{formatBRL(c.amountCents)}</span>
                 </div>
               </div>
             ))}

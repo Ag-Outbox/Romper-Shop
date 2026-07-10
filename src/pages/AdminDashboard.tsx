@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import Reveal from '../components/Reveal';
 import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
@@ -110,12 +111,14 @@ export default function AdminDashboard() {
 
   return (
     <DashboardShell title="Visão geral" subtitle="Métricas da plataforma">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="GMV" value={formatBRL(gmvCents)} hint="volume transacionado (estimado)" />
-        <Stat label="RECEITA DA PLATAFORMA" value={formatBRL(platformRevenueCents)} hint={`comissão: ${PLATFORM_COMMISSION_PERCENT.seller}% vendedor · ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship`} />
-        <Stat label="VENDEDORES" value={sellers.length} />
-        <Stat label="COD" value={`${codShare}%`} hint="dos produtos aceitam" />
-      </div>
+      <Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Stat label="GMV" value={formatBRL(gmvCents)} hint="volume transacionado (estimado)" />
+          <Stat label="RECEITA DA PLATAFORMA" value={formatBRL(platformRevenueCents)} hint={`comissão: ${PLATFORM_COMMISSION_PERCENT.seller}% vendedor · ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship`} />
+          <Stat label="VENDEDORES" value={sellers.length} />
+          <Stat label="COD" value={`${codShare}%`} hint="dos produtos aceitam" />
+        </div>
+      </Reveal>
 
       {/* Catálogo administrado — importação dropship direta da plataforma */}
       <section className="mt-10">
@@ -181,11 +184,11 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {adminRows.map((r) => (
-                  <tr key={r.id} className="border-b border-line last:border-0">
+                  <tr key={r.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
                     <td className="px-5 py-3 text-mist">{r.title}</td>
                     <td className="px-5 py-3 text-fog">{r.category}</td>
-                    <td className="px-5 py-3 text-right">{formatBRL(r.priceCents)}</td>
-                    <td className="px-5 py-3 text-right text-fog">{r.stock}</td>
+                    <td className="px-5 py-3 text-right tabular-nums">{formatBRL(r.priceCents)}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{r.stock}</td>
                     <td className="px-5 py-3">
                       <span className="rounded-full bg-line px-2.5 py-1 font-mono text-xs text-fog">{r.status === 'active' ? 'ativo' : 'rascunho'}</span>
                     </td>
@@ -261,11 +264,11 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {sellers.map((s) => (
-                  <tr key={s.slug} className="border-b border-line last:border-0">
+                  <tr key={s.slug} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
                     <td className="px-5 py-3 text-mist">{s.name}</td>
-                    <td className="px-5 py-3 text-right text-fog">{s.products}</td>
-                    <td className="px-5 py-3 text-right text-fog">{s.sales.toLocaleString('pt-BR')}</td>
-                    <td className="px-5 py-3 text-right text-volt">★ {s.ratingAvg.toFixed(1)}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{s.products}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{s.sales.toLocaleString('pt-BR')}</td>
+                    <td className="px-5 py-3 text-right text-volt tabular-nums">★ {s.ratingAvg.toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -311,12 +314,12 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {affiliates.map((a) => (
-                  <tr key={a.id} className="border-b border-line last:border-0">
+                  <tr key={a.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
                     <td className="px-5 py-3 font-mono text-mist">{a.code}</td>
-                    <td className="px-5 py-3 text-right text-fog">{a.clicks}</td>
-                    <td className="px-5 py-3 text-right text-fog">{a.commissionPercent}%</td>
-                    <td className="px-5 py-3 text-right text-fog">{formatBRL(a.pendingCents)}</td>
-                    <td className="px-5 py-3 text-right text-volt">{formatBRL(a.balanceCents)}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{a.clicks}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{a.commissionPercent}%</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{formatBRL(a.pendingCents)}</td>
+                    <td className="px-5 py-3 text-right text-volt tabular-nums">{formatBRL(a.balanceCents)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -341,11 +344,11 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {PRODUCTS.map((p) => (
-                <tr key={p.id} className="border-b border-line last:border-0">
+                <tr key={p.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
                   <td className="px-5 py-3 text-mist">{p.title}</td>
                   <td className="px-5 py-3 text-fog">{p.seller.name}</td>
                   <td className="px-5 py-3 text-fog">{p.categoryName}</td>
-                  <td className="px-5 py-3 text-right">{formatBRL(p.priceCents)}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{formatBRL(p.priceCents)}</td>
                   <td className="px-5 py-3">
                     <span className={`font-mono text-xs ${p.codAvailable ? 'text-volt' : 'text-fog'}`}>{p.codAvailable ? 'sim' : 'não'}</span>
                   </td>

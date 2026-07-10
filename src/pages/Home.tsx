@@ -133,10 +133,10 @@ function CategoryGrid() {
       </Reveal>
       <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[160px] md:auto-rows-[200px] gap-3">
         {CATEGORIES.map((c, i) => (
-          <Reveal key={c.name} delay={i * 0.05}>
+          <Reveal key={c.name} delay={i * 0.05} className={c.span}>
             <Link
               to={`/categoria/${c.slug}`}
-              className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-xl2 border border-line bg-surface p-5 transition-colors hover:border-volt ${c.span}`}
+              className="group relative flex h-full flex-col justify-between overflow-hidden rounded-xl2 border border-line bg-surface p-5 transition-colors hover:border-volt"
             >
               <span className="font-mono text-xs text-fog">{c.count} itens</span>
               <div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import Reveal from '../components/Reveal';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
 import { CATEGORIES } from '../lib/catalog';
@@ -172,12 +173,14 @@ export default function SellerDashboard() {
 
   return (
     <DashboardShell title={user?.storeSlug ? 'Sua loja' : 'Painel do vendedor'} subtitle="Gerencie catálogo, estoque e vendas">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="FATURAMENTO" value={formatBRL(kpis.revenue)} hint="acumulado (estimado)" />
-        <Stat label="VENDAS" value={kpis.sales.toLocaleString('pt-BR')} />
-        <Stat label="PRODUTOS ATIVOS" value={kpis.active} />
-        <Stat label="SALDO DISPONÍVEL" value={formatBRL(kpis.availableCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
-      </div>
+      <Reveal>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Stat label="FATURAMENTO" value={formatBRL(kpis.revenue)} hint="acumulado (estimado)" />
+          <Stat label="VENDAS" value={kpis.sales.toLocaleString('pt-BR')} />
+          <Stat label="PRODUTOS ATIVOS" value={kpis.active} />
+          <Stat label="SALDO DISPONÍVEL" value={formatBRL(kpis.availableCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
+        </div>
+      </Reveal>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -373,10 +376,10 @@ export default function SellerDashboard() {
               {rows.map((r) => {
                 const editing = editingId === r.id;
                 return (
-                  <tr key={r.id} className="border-b border-line last:border-0">
+                  <tr key={r.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
                     <td className="px-5 py-3 text-mist">{r.title}</td>
                     <td className="px-5 py-3 text-fog">{r.category}</td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-5 py-3 text-right tabular-nums">
                       {editing ? (
                         <input
                           className="w-24 rounded border border-line bg-ink px-2 py-1 text-right text-sm text-mist outline-none focus:border-volt"
@@ -386,7 +389,7 @@ export default function SellerDashboard() {
                         />
                       ) : formatBRL(r.priceCents)}
                     </td>
-                    <td className="px-5 py-3 text-right text-fog">
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">
                       {editing ? (
                         <input
                           className="w-16 rounded border border-line bg-ink px-2 py-1 text-right text-sm text-mist outline-none focus:border-volt"
@@ -396,7 +399,7 @@ export default function SellerDashboard() {
                         />
                       ) : r.stock}
                     </td>
-                    <td className="px-5 py-3 text-right text-fog">{r.sales.toLocaleString('pt-BR')}</td>
+                    <td className="px-5 py-3 text-right text-fog tabular-nums">{r.sales.toLocaleString('pt-BR')}</td>
                     <td className="px-5 py-3">
                       <span className="font-mono text-xs text-fog">{r.source === 'dropship' ? 'dropship' : 'próprio'}</span>
                     </td>
