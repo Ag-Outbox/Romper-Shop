@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
-import { PRODUCTS, CATEGORIES } from '../lib/catalog';
+import { CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 import { listSellerSubOrders, updateSubOrderStatus, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
 import { confirmCommissionsForSubOrder } from '../lib/affiliates';
@@ -12,36 +12,16 @@ import { availableProviders, importFromProvider } from '../lib/dropship';
 import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
 import { applyMarkup } from '../services/dropship/DropshipProvider';
 import { PLATFORM_COMMISSION_PERCENT, platformCommissionCents } from '../lib/commission';
+import { getSellerCatalog, addSellerCatalogRow, type SellerCatalogRow as Row } from '../lib/sellerCatalog';
 import type { SubOrderStatus } from '../lib/types';
 
 const DEFAULT_MARKUP_PERCENT = 40;
 
 /* ROMPER SHOP — Painel do vendedor (/vendedor).
-   Catálogo/estoque em estado local (demo) seedado do catálogo. Publicar e
-   importar dropship mutam a lista para exercitar o fluxo — no Supabase isso
-   vira insert em `products` via a camada de dados. */
-
-interface Row {
-  id: string;
-  title: string;
-  category: string;
-  priceCents: number;
-  stock: number;
-  sales: number;
-  source: 'seller' | 'dropship';
-  status: 'active' | 'draft';
-}
-
-const seed: Row[] = PRODUCTS.map((p) => ({
-  id: p.id,
-  title: p.title,
-  category: p.categoryName,
-  priceCents: p.priceCents,
-  stock: p.stock,
-  sales: p.salesCount,
-  source: p.source,
-  status: 'active',
-}));
+   Catálogo persistido por loja (lib/sellerCatalog, localStorage) — cada
+   vendedor vê só o seu, não mais o mock inteiro. Publicar e importar
+   dropship gravam de verdade; no Supabase isso vira insert em `products`
+   com seller_id = a loja do usuário logado. */
 
 const inputCls = 'rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors';
 
@@ -57,8 +37,14 @@ export default function SellerDashboard() {
   usePageMeta('Painel do vendedor');
   const { user } = useAuth();
   const storeSlug = user?.storeSlug ?? '';
-  const [rows, setRows] = useState<Row[]>(seed);
+  const [rows, setRows] = useState<Row[]>(() => getSellerCatalog(storeSlug));
   const [subOrders, setSubOrders] = useState(() => listSellerSubOrders(storeSlug));
+
+  // Troca de loja (ex.: logout/login com outra conta) recarrega o catálogo certo.
+  useEffect(() => {
+    setRows(getSellerCatalog(storeSlug));
+    setSubOrders(listSellerSubOrders(storeSlug));
+  }, [storeSlug]);
 
   const advance = (orderId: string, to: SubOrderStatus) => {
     updateSubOrderStatus(orderId, storeSlug, to);
@@ -99,10 +85,9 @@ export default function SellerDashboard() {
     e.preventDefault();
     const cents = Math.round(parseFloat(price.replace(',', '.')) * 100);
     if (!title.trim() || Number.isNaN(cents)) return;
-    setRows((r) => [
-      { id: `new-${Date.now()}`, title: title.trim(), category, priceCents: cents, stock: parseInt(stock || '0', 10), sales: 0, source: 'seller', status: 'active' },
-      ...r,
-    ]);
+    setRows(addSellerCatalogRow(storeSlug, {
+      id: `new-${Date.now()}`, title: title.trim(), category, priceCents: cents, stock: parseInt(stock || '0', 10), sales: 0, source: 'seller', status: 'active',
+    }));
     setTitle(''); setPrice(''); setStock('');
     setShowForm(false);
     flash('Produto publicado.');
@@ -119,19 +104,16 @@ export default function SellerDashboard() {
       const stockTotal = normalized.variants.length
         ? normalized.variants.reduce((n, v) => n + v.stock, 0)
         : 999;
-      setRows((r) => [
-        {
-          id: `imp-${Date.now()}`,
-          title: normalized.title,
-          category: importCategory,
-          priceCents: sellCents,
-          stock: stockTotal,
-          sales: 0,
-          source: 'dropship',
-          status: 'draft',
-        },
-        ...r,
-      ]);
+      setRows(addSellerCatalogRow(storeSlug, {
+        id: `imp-${Date.now()}`,
+        title: normalized.title,
+        category: importCategory,
+        priceCents: sellCents,
+        stock: stockTotal,
+        sales: 0,
+        source: 'dropship',
+        status: 'draft',
+      }));
       setImportInput('');
       setShowImport(false);
       flash(`"${normalized.title}" importado como rascunho (markup de ${DEFAULT_MARKUP_PERCENT}% aplicado) — revise antes de publicar.`);
