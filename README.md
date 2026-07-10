@@ -169,5 +169,19 @@ na migration 0006.
 `src/lib/commission.ts` centraliza a taxa que a Romper Shop cobra por venda:
 produtos de **vendedor próprio** rendem 8% para a plataforma; produtos
 **dropship** (a loja usa uma conexão de fornecedor que a própria Romper Shop
-mantém) rendem 15% — visível no painel do vendedor ("Saldo a receber") e
+mantém) rendem 15% — visível no painel do vendedor ("Saldo disponível") e
 agregado no painel admin ("Receita da plataforma").
+
+### Gerenciar catálogo e sacar saldo
+
+O painel do vendedor (`/vendedor`) permite **editar** preço/estoque, **ativar
+ou pausar** e **remover** qualquer produto do próprio catálogo (persistido
+por loja em `src/lib/sellerCatalog.ts`) — antes só dava para publicar ou
+importar, sem voltar atrás.
+
+Vendedor e afiliado também podem **solicitar saque** do saldo disponível
+(`src/lib/payouts.ts`, migration 0007: `payouts` ganha `affiliate_id` —
+exatamente um entre `seller_id`/`affiliate_id` preenchido). No afiliado, o
+saldo confirmado é debitado de verdade ao sacar; no vendedor, o saldo é
+derivado (faturamento − comissão da plataforma), então guardamos o total já
+sacado por loja para não permitir sacar duas vezes o mesmo valor.

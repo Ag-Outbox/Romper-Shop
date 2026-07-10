@@ -176,3 +176,12 @@ export function listCommissions(affiliateId: string): AffiliateCommission[] {
 export function listAllAffiliates(): Affiliate[] {
   return readAffiliates();
 }
+
+/** Debita o saldo confirmado (chamado junto do registro do saque, lib/payouts). */
+export function withdrawAffiliateBalance(affiliateId: string, amountCents: number): void {
+  const all = readAffiliates();
+  const idx = all.findIndex((a) => a.id === affiliateId);
+  if (idx < 0) return;
+  all[idx].balanceCents = Math.max(0, all[idx].balanceCents - amountCents);
+  writeAffiliates(all);
+}

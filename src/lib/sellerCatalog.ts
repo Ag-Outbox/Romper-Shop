@@ -56,3 +56,15 @@ export function addSellerCatalogRow(storeSlug: string, row: SellerCatalogRow): S
   localStorage.setItem(keyFor(storeSlug), JSON.stringify(next));
   return next;
 }
+
+export function updateSellerCatalogRow(storeSlug: string, id: string, patch: Partial<SellerCatalogRow>): SellerCatalogRow[] {
+  const next = getSellerCatalog(storeSlug).map((r) => (r.id === id ? { ...r, ...patch } : r));
+  localStorage.setItem(keyFor(storeSlug), JSON.stringify(next));
+  return next;
+}
+
+export function removeSellerCatalogRow(storeSlug: string, id: string): SellerCatalogRow[] {
+  const next = getSellerCatalog(storeSlug).filter((r) => r.id !== id);
+  localStorage.setItem(keyFor(storeSlug), JSON.stringify(next));
+  return next;
+}

@@ -12,7 +12,11 @@ import { availableProviders, importFromProvider } from '../lib/dropship';
 import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
 import { applyMarkup } from '../services/dropship/DropshipProvider';
 import { PLATFORM_COMMISSION_PERCENT, platformCommissionCents } from '../lib/commission';
-import { getSellerCatalog, addSellerCatalogRow, type SellerCatalogRow as Row } from '../lib/sellerCatalog';
+import {
+  getSellerCatalog, addSellerCatalogRow, updateSellerCatalogRow, removeSellerCatalogRow,
+  type SellerCatalogRow as Row,
+} from '../lib/sellerCatalog';
+import { listPayouts, requestSellerPayout, totalWithdrawnBySeller } from '../lib/payouts';
 import type { SubOrderStatus } from '../lib/types';
 
 const DEFAULT_MARKUP_PERCENT = 40;
@@ -39,11 +43,14 @@ export default function SellerDashboard() {
   const storeSlug = user?.storeSlug ?? '';
   const [rows, setRows] = useState<Row[]>(() => getSellerCatalog(storeSlug));
   const [subOrders, setSubOrders] = useState(() => listSellerSubOrders(storeSlug));
+  const [payouts, setPayouts] = useState(() => listPayouts('seller', storeSlug));
+  const [payoutNote, setPayoutNote] = useState<string | null>(null);
 
-  // Troca de loja (ex.: logout/login com outra conta) recarrega o catálogo certo.
+  // Troca de loja (ex.: logout/login com outra conta) recarrega os dados certos.
   useEffect(() => {
     setRows(getSellerCatalog(storeSlug));
     setSubOrders(listSellerSubOrders(storeSlug));
+    setPayouts(listPayouts('seller', storeSlug));
   }, [storeSlug]);
 
   const advance = (orderId: string, to: SubOrderStatus) => {
@@ -73,8 +80,47 @@ export default function SellerDashboard() {
     const revenue = rows.reduce((n, r) => n + r.sales * r.priceCents, 0);
     // Dropship rende mais para a plataforma (conexão com fornecedor é dela) — comissão maior nesses itens.
     const commission = rows.reduce((n, r) => n + platformCommissionCents(r.source, r.sales * r.priceCents), 0);
-    return { active, sales, revenue, netCents: revenue - commission };
-  }, [rows]);
+    const netCents = revenue - commission;
+    const availableCents = Math.max(0, netCents - totalWithdrawnBySeller(storeSlug));
+    return { active, sales, revenue, netCents, availableCents };
+  }, [rows, storeSlug, payouts]);
+
+  const withdraw = () => {
+    if (kpis.availableCents <= 0) return;
+    requestSellerPayout(storeSlug, kpis.availableCents);
+    setPayouts(listPayouts('seller', storeSlug));
+    setPayoutNote(`Saque de ${formatBRL(kpis.availableCents)} solicitado.`);
+    window.setTimeout(() => setPayoutNote(null), 3000);
+  };
+
+  // Edição inline de produto
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editStock, setEditStock] = useState('');
+
+  const startEdit = (r: Row) => {
+    setEditingId(r.id);
+    setEditPrice((r.priceCents / 100).toFixed(2).replace('.', ','));
+    setEditStock(String(r.stock));
+  };
+
+  const saveEdit = (id: string) => {
+    const cents = Math.round(parseFloat(editPrice.replace(',', '.')) * 100);
+    const stockNum = parseInt(editStock || '0', 10);
+    if (!Number.isNaN(cents)) {
+      setRows(updateSellerCatalogRow(storeSlug, id, { priceCents: cents, stock: Number.isNaN(stockNum) ? 0 : stockNum }));
+    }
+    setEditingId(null);
+  };
+
+  const toggleStatus = (r: Row) => {
+    setRows(updateSellerCatalogRow(storeSlug, r.id, { status: r.status === 'active' ? 'draft' : 'active' }));
+  };
+
+  const removeProduct = (r: Row) => {
+    if (!window.confirm(`Remover "${r.title}" do catálogo?`)) return;
+    setRows(removeSellerCatalogRow(storeSlug, r.id));
+  };
 
   const flash = (msg: string) => {
     setNote(msg);
@@ -130,8 +176,30 @@ export default function SellerDashboard() {
         <Stat label="FATURAMENTO" value={formatBRL(kpis.revenue)} hint="acumulado (estimado)" />
         <Stat label="VENDAS" value={kpis.sales.toLocaleString('pt-BR')} />
         <Stat label="PRODUTOS ATIVOS" value={kpis.active} />
-        <Stat label="SALDO A RECEBER" value={formatBRL(kpis.netCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
+        <Stat label="SALDO DISPONÍVEL" value={formatBRL(kpis.availableCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
       </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          onClick={withdraw}
+          disabled={kpis.availableCents <= 0}
+          className="rounded-full border border-line px-5 py-2 text-sm hover:border-volt hover:text-volt transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Solicitar saque
+        </button>
+        {payoutNote && <span className="font-mono text-xs text-volt">{payoutNote}</span>}
+      </div>
+
+      {payouts.length > 0 && (
+        <div className="mt-3 flex flex-col gap-1.5">
+          {payouts.slice(0, 3).map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-xs text-fog">
+              <span>Saque solicitado em {new Date(p.requestedAt).toLocaleDateString('pt-BR')}</span>
+              <span className="font-mono">{formatBRL(p.amountCents)} · {p.status === 'paid' ? 'pago' : 'pendente'}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <button onClick={() => setShowForm((s) => !s)} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
@@ -298,26 +366,64 @@ export default function SellerDashboard() {
                 <th className="px-5 py-3 font-normal text-right">VENDIDOS</th>
                 <th className="px-5 py-3 font-normal">ORIGEM</th>
                 <th className="px-5 py-3 font-normal">STATUS</th>
+                <th className="px-5 py-3 font-normal">AÇÕES</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-line last:border-0">
-                  <td className="px-5 py-3 text-mist">{r.title}</td>
-                  <td className="px-5 py-3 text-fog">{r.category}</td>
-                  <td className="px-5 py-3 text-right">{formatBRL(r.priceCents)}</td>
-                  <td className="px-5 py-3 text-right text-fog">{r.stock}</td>
-                  <td className="px-5 py-3 text-right text-fog">{r.sales.toLocaleString('pt-BR')}</td>
-                  <td className="px-5 py-3">
-                    <span className="font-mono text-xs text-fog">{r.source === 'dropship' ? 'dropship' : 'próprio'}</span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`rounded-full px-2.5 py-1 font-mono text-xs ${r.status === 'active' ? 'bg-volt/15 text-volt' : 'bg-line text-fog'}`}>
-                      {r.status === 'active' ? 'ativo' : 'rascunho'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                const editing = editingId === r.id;
+                return (
+                  <tr key={r.id} className="border-b border-line last:border-0">
+                    <td className="px-5 py-3 text-mist">{r.title}</td>
+                    <td className="px-5 py-3 text-fog">{r.category}</td>
+                    <td className="px-5 py-3 text-right">
+                      {editing ? (
+                        <input
+                          className="w-24 rounded border border-line bg-ink px-2 py-1 text-right text-sm text-mist outline-none focus:border-volt"
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          inputMode="decimal"
+                        />
+                      ) : formatBRL(r.priceCents)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-fog">
+                      {editing ? (
+                        <input
+                          className="w-16 rounded border border-line bg-ink px-2 py-1 text-right text-sm text-mist outline-none focus:border-volt"
+                          value={editStock}
+                          onChange={(e) => setEditStock(e.target.value)}
+                          inputMode="numeric"
+                        />
+                      ) : r.stock}
+                    </td>
+                    <td className="px-5 py-3 text-right text-fog">{r.sales.toLocaleString('pt-BR')}</td>
+                    <td className="px-5 py-3">
+                      <span className="font-mono text-xs text-fog">{r.source === 'dropship' ? 'dropship' : 'próprio'}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <button
+                        onClick={() => toggleStatus(r)}
+                        className={`rounded-full px-2.5 py-1 font-mono text-xs transition-colors ${r.status === 'active' ? 'bg-volt/15 text-volt hover:bg-volt/25' : 'bg-line text-fog hover:text-mist'}`}
+                      >
+                        {r.status === 'active' ? 'ativo' : 'rascunho'}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3">
+                      {editing ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => saveEdit(r.id)} className="text-xs text-volt hover:underline">salvar</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-fog hover:underline">cancelar</button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <button onClick={() => startEdit(r)} className="text-xs text-fog hover:text-volt transition-colors">editar</button>
+                          <button onClick={() => removeProduct(r)} className="text-xs text-fog hover:text-ember transition-colors">remover</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

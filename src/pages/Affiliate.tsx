@@ -4,7 +4,8 @@ import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
-import { becomeAffiliate, getAffiliateByProfile, listCommissions } from '../lib/affiliates';
+import { becomeAffiliate, getAffiliateByProfile, listCommissions, withdrawAffiliateBalance } from '../lib/affiliates';
+import { listPayouts, requestAffiliatePayout } from '../lib/payouts';
 import { formatBRL } from '../lib/format';
 
 /* ---------------------------------------------------------------------------
@@ -20,10 +21,23 @@ export default function Affiliate() {
   const { user } = useAuth();
   const [affiliate, setAffiliate] = useState(() => (user ? getAffiliateByProfile(user.id) : undefined));
   const [copied, setCopied] = useState(false);
+  const [payouts, setPayouts] = useState(() => (affiliate ? listPayouts('affiliate', affiliate.id) : []));
+  const [payoutNote, setPayoutNote] = useState<string | null>(null);
 
   const join = () => {
     if (!user) return;
     setAffiliate(becomeAffiliate(user.id, user.fullName));
+  };
+
+  const withdraw = () => {
+    if (!affiliate || affiliate.balanceCents <= 0) return;
+    requestAffiliatePayout(affiliate.id, affiliate.balanceCents);
+    withdrawAffiliateBalance(affiliate.id, affiliate.balanceCents);
+    const refreshed = getAffiliateByProfile(user!.id);
+    setAffiliate(refreshed);
+    setPayouts(listPayouts('affiliate', affiliate.id));
+    setPayoutNote(`Saque de ${formatBRL(affiliate.balanceCents)} solicitado.`);
+    window.setTimeout(() => setPayoutNote(null), 3000);
   };
 
   const link = affiliate ? `${window.location.origin}/?ref=${affiliate.code}` : '';
@@ -62,9 +76,31 @@ export default function Affiliate() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Stat label="CLIQUES" value={affiliate.clicks} />
         <Stat label="COMISSÃO PENDENTE" value={formatBRL(affiliate.pendingCents)} hint="pedidos ainda não entregues" />
-        <Stat label="COMISSÃO CONFIRMADA" value={formatBRL(affiliate.balanceCents)} hint="pedidos entregues" />
+        <Stat label="COMISSÃO CONFIRMADA" value={formatBRL(affiliate.balanceCents)} hint="disponível para saque" />
         <Stat label="COMISSÃO" value={`${affiliate.commissionPercent}%`} hint="sobre o subtotal indicado" />
       </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          onClick={withdraw}
+          disabled={affiliate.balanceCents <= 0}
+          className="rounded-full border border-line px-5 py-2 text-sm hover:border-volt hover:text-volt transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Sacar comissão confirmada
+        </button>
+        {payoutNote && <span className="font-mono text-xs text-volt">{payoutNote}</span>}
+      </div>
+
+      {payouts.length > 0 && (
+        <div className="mt-3 flex flex-col gap-1.5">
+          {payouts.slice(0, 3).map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-xs text-fog">
+              <span>Saque solicitado em {new Date(p.requestedAt).toLocaleDateString('pt-BR')}</span>
+              <span className="font-mono">{formatBRL(p.amountCents)} · {p.status === 'paid' ? 'pago' : 'pendente'}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <section className="mt-10 rounded-xl2 border border-line bg-surface p-6">
         <p className="font-mono text-xs text-fog tracking-widest mb-3">SEU LINK DE INDICAÇÃO</p>

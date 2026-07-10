@@ -164,3 +164,14 @@ export interface SellerAccount {
   status: 'pending' | 'active';
   createdAt: string;
 }
+
+/* ---- Saques (vendedor OU afiliado — exatamente um dos dois) ---- */
+
+export interface Payout {
+  id: string;
+  ownerType: 'seller' | 'affiliate';
+  ownerId: string; // storeSlug (vendedor) ou affiliateId (afiliado)
+  amountCents: number;
+  status: 'pending' | 'paid';
+  requestedAt: string;
+}
