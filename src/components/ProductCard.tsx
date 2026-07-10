@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
 import { formatBRL, discountPercent } from '../lib/format';
+import { useFavorites } from '../lib/useFavorites';
 import type { Product } from '../lib/types';
 
 /** Card de produto para grids (categoria, relacionados, busca). */
 export default function ProductCard({ product }: { product: Product }) {
   const off = discountPercent(product.priceCents, product.compareAtCents);
+  const { isFavorite, toggle } = useFavorites();
+  const favorited = isFavorite(product.id);
+
   return (
     <Link
       to={`/produto/${product.slug}`}
@@ -27,6 +31,16 @@ export default function ProductCard({ product }: { product: Product }) {
             -{off}%
           </span>
         )}
+        <button
+          onClick={(e) => { e.preventDefault(); toggle(product.id); }}
+          aria-label={favorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          aria-pressed={favorited}
+          className={`absolute bottom-3 right-3 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition-colors ${
+            favorited ? 'bg-volt text-ink' : 'bg-ink/70 text-mist hover:text-volt'
+          }`}
+        >
+          <span aria-hidden>{favorited ? '♥' : '♡'}</span>
+        </button>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-sm text-mist line-clamp-2 group-hover:text-volt transition-colors">{product.title}</p>

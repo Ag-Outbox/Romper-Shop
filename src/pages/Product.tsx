@@ -7,10 +7,13 @@ import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
 import { usePageMeta } from '../lib/usePageMeta';
-import { fetchProductBySlug, fetchRelated } from '../lib/api';
+import { fetchProductBySlug, fetchRelated, fetchReviews, submitReview } from '../lib/api';
+import { hasVerifiedPurchase, hasReviewed } from '../lib/reviewsStore';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
-import type { CartItem, Product, ProductVariant } from '../lib/types';
+import { useFavorites } from '../lib/useFavorites';
+import { useAuth } from '../lib/auth';
+import type { CartItem, Product, ProductVariant, Review } from '../lib/types';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Página de produto (/produto/:slug)
@@ -58,6 +61,108 @@ function Gallery({ images, activeIndex, onSelect }: {
   );
 }
 
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <div className="rounded-xl2 border border-line bg-surface p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Stars value={review.rating} />
+          <span className="text-sm text-mist">{review.buyerName}</span>
+          {review.isVerified && (
+            <span className="rounded-full border border-volt/40 px-2 py-0.5 font-mono text-[10px] text-volt">compra verificada</span>
+          )}
+        </div>
+        <span className="font-mono text-[11px] text-fog">{new Date(review.createdAt).toLocaleDateString('pt-BR')}</span>
+      </div>
+      {review.title && <p className="mt-3 text-sm text-mist font-medium">{review.title}</p>}
+      {review.body && <p className="mt-1 text-sm text-fog leading-relaxed">{review.body}</p>}
+    </div>
+  );
+}
+
+function Reviews({ productId }: { productId: string }) {
+  const { user } = useAuth();
+  const { data: reviews, loading } = useAsync(() => fetchReviews(productId), [productId]);
+  const [localReviews, setLocalReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState(5);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const all = [...localReviews, ...(reviews ?? [])];
+  const eligible = !!user && hasVerifiedPurchase(productId) && !hasReviewed(productId, user.id) &&
+    !localReviews.some((r) => r.buyerId === user.id);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setBusy(true);
+    try {
+      const created = await submitReview({ productId, buyerId: user.id, buyerName: user.fullName, rating, title: title.trim() || undefined, body: body.trim() || undefined });
+      setLocalReviews((r) => [created, ...r]);
+      setShowForm(false);
+      setTitle(''); setBody(''); setRating(5);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-16 md:mt-24 border-t border-line pt-12">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <h2 className="font-display text-3xl md:text-4xl font-semibold">
+          Avaliações {all.length > 0 && <span className="text-fog font-sans text-lg">({all.length})</span>}
+        </h2>
+        {eligible && !showForm && (
+          <button onClick={() => setShowForm(true)} className="rounded-full border border-line px-5 py-2 text-sm hover:border-volt hover:text-volt transition-colors">
+            Avaliar produto
+          </button>
+        )}
+      </div>
+
+      {eligible && showForm && (
+        <form onSubmit={submit} className="mb-8 rounded-xl2 border border-line bg-surface p-5 flex flex-col gap-3">
+          <label className="flex items-center gap-3 text-sm">
+            <span className="text-fog">Sua nota:</span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" onClick={() => setRating(n)} aria-label={`${n} estrelas`}
+                  className={`text-xl ${n <= rating ? 'text-volt' : 'text-line'}`}>★</button>
+              ))}
+            </div>
+          </label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título (opcional)"
+            className="rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Conte como foi sua experiência (opcional)" rows={3}
+            className="rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors resize-none" />
+          <div className="flex gap-3">
+            <button type="submit" disabled={busy} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-60">
+              {busy ? 'Enviando…' : 'Enviar avaliação'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="text-sm text-fog hover:text-mist transition-colors">cancelar</button>
+          </div>
+        </form>
+      )}
+
+      {loading && <p className="text-fog text-sm">Carregando avaliações…</p>}
+
+      {!loading && all.length === 0 && (
+        <p className="text-fog text-sm">
+          Este produto ainda não tem avaliações.
+          {user ? '' : ' Entre e compre para ser o primeiro a avaliar.'}
+        </p>
+      )}
+
+      {!loading && all.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {all.map((r) => <ReviewCard key={r.id} review={r} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ProductSkeleton() {
   return (
     <div className="grid lg:grid-cols-2 gap-8 lg:gap-14 pt-6">
@@ -77,6 +182,7 @@ export default function Product() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { add } = useCart();
+  const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const { data: product, loading } = useAsync(
     () => (slug ? fetchProductBySlug(slug) : Promise.resolve(undefined)),
@@ -198,9 +304,21 @@ export default function Product() {
           </Reveal>
 
           <div className="flex flex-col">
-            <p className="font-mono text-xs text-volt tracking-widest mb-3">
-              {product.brand ? `${product.brand.toUpperCase()} · ` : ''}{product.categoryName.toUpperCase()}
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <p className="font-mono text-xs text-volt tracking-widest mb-3">
+                {product.brand ? `${product.brand.toUpperCase()} · ` : ''}{product.categoryName.toUpperCase()}
+              </p>
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                aria-label={isFavorite(product.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                aria-pressed={isFavorite(product.id)}
+                className={`shrink-0 grid h-10 w-10 place-items-center rounded-full border transition-colors ${
+                  isFavorite(product.id) ? 'border-volt bg-volt/10 text-volt' : 'border-line text-fog hover:text-volt hover:border-volt'
+                }`}
+              >
+                <span aria-hidden className="text-lg">{isFavorite(product.id) ? '♥' : '♡'}</span>
+              </button>
+            </div>
             <h1 className="font-display text-3xl md:text-5xl font-semibold text-balance">{product.title}</h1>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -324,6 +442,8 @@ export default function Product() {
             </dl>
           </Reveal>
         </section>
+
+        <Reviews productId={product.id} />
 
         {related && related.length > 0 && (
           <section className="mt-16 md:mt-24">

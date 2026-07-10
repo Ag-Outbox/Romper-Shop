@@ -3,9 +3,11 @@ import {
   CATEGORIES as MOCK_CATEGORIES,
   PRODUCTS as MOCK_PRODUCTS,
   getProductBySlug as mockBySlug,
+  getProductById as mockById,
   getRelated as mockRelated,
 } from './catalog';
-import type { Product, ProductOptionGroup, ProductVariant } from './types';
+import { getReviews as mockGetReviews, addReview as mockAddReview } from './reviewsStore';
+import type { Product, ProductOptionGroup, ProductVariant, Review } from './types';
 
 /* ---------------------------------------------------------------------------
    CAMADA DE DADOS — uma API para o app inteiro.
@@ -175,6 +177,17 @@ export async function fetchProductsByCategory(slug: string, sort: ProductSort = 
   return sortProducts(list, sort);
 }
 
+export async function fetchProductById(id: string): Promise<Product | undefined> {
+  if (!isSupabaseConfigured || !supabase) return mockById(id);
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToProduct(data as unknown as ProductRow) : undefined;
+}
+
 export async function fetchRelated(product: Product, limit = 4): Promise<Product[]> {
   if (!isSupabaseConfigured || !supabase) return mockRelated(product, limit);
   const list = await fetchProductsByCategory(product.categorySlug, 'best_selling');
@@ -263,4 +276,61 @@ export async function searchProducts(query: string, sort: ProductSort = 'relevan
   if (error) throw error;
   const list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
   return sortProducts(list, sort);
+}
+
+/* ----------------------------- Avaliações ----------------------------------- */
+
+interface ReviewRow {
+  id: string;
+  product_id: string;
+  buyer_id: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  is_verified: boolean;
+  created_at: string;
+  buyer: { full_name: string | null } | null;
+}
+
+function reviewRowToReview(row: ReviewRow): Review {
+  return {
+    id: row.id,
+    productId: row.product_id,
+    buyerId: row.buyer_id,
+    buyerName: row.buyer?.full_name ?? 'Comprador',
+    rating: row.rating,
+    title: row.title ?? undefined,
+    body: row.body ?? undefined,
+    isVerified: row.is_verified,
+    createdAt: row.created_at,
+  };
+}
+
+export async function fetchReviews(productId: string): Promise<Review[]> {
+  if (!isSupabaseConfigured || !supabase) return mockGetReviews(productId);
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('id, product_id, buyer_id, rating, title, body, is_verified, created_at, buyer:profiles(full_name)')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return ((data as unknown as ReviewRow[]) ?? []).map(reviewRowToReview);
+}
+
+export async function submitReview(input: {
+  productId: string;
+  buyerId: string;
+  buyerName: string;
+  rating: number;
+  title?: string;
+  body?: string;
+}): Promise<Review> {
+  if (!isSupabaseConfigured || !supabase) return mockAddReview(input);
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert({ product_id: input.productId, buyer_id: input.buyerId, rating: input.rating, title: input.title, body: input.body })
+    .select('id, product_id, buyer_id, rating, title, body, is_verified, created_at, buyer:profiles(full_name)')
+    .single();
+  if (error) throw error;
+  return reviewRowToReview(data as unknown as ReviewRow);
 }

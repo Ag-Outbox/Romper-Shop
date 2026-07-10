@@ -115,3 +115,17 @@ export interface Order {
   totalCents: number;
   statusLabel: string;
 }
+
+/* ---- Avaliações (só com compra verificada, 1 por comprador/produto) ---- */
+
+export interface Review {
+  id: string;
+  productId: string;
+  buyerId: string;
+  buyerName: string;
+  rating: number; // 1-5
+  title?: string;
+  body?: string;
+  isVerified: boolean;
+  createdAt: string;
+}

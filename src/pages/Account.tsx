@@ -1,18 +1,29 @@
 import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import ProductCard from '../components/ProductCard';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
+import { useAsync } from '../lib/useAsync';
+import { useFavorites } from '../lib/useFavorites';
 import { listOrders } from '../lib/orders';
+import { fetchProductById } from '../lib/api';
 import { formatBRL } from '../lib/format';
+import type { Product } from '../lib/types';
 
-/* ROMPER SHOP — Conta do comprador (/conta): perfil, reputação e pedidos. */
+/* ROMPER SHOP — Conta do comprador (/conta): perfil, reputação, pedidos e favoritos. */
 
 export default function Account() {
   usePageMeta('Minha conta');
   const { user } = useAuth();
   const orders = listOrders();
   const totalSpent = orders.reduce((n, o) => n + o.totalCents, 0);
+
+  const { ids: favoriteIds } = useFavorites();
+  const { data: favorites, loading: loadingFavorites } = useAsync(async () => {
+    const list = await Promise.all([...favoriteIds].map(fetchProductById));
+    return list.filter((p): p is Product => !!p);
+  }, [favoriteIds.size, [...favoriteIds].join(',')]);
 
   return (
     <DashboardShell title={`Olá, ${user?.fullName.split(' ')[0] ?? ''}`} subtitle="Seus pedidos e informações">
@@ -55,6 +66,28 @@ export default function Account() {
                 </Link>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl font-semibold mb-5">
+          Favoritos {favorites && favorites.length > 0 && <span className="text-fog font-sans text-base">({favorites.length})</span>}
+        </h2>
+
+        {!loadingFavorites && (!favorites || favorites.length === 0) && (
+          <div className="rounded-xl2 border border-line bg-surface p-12 text-center">
+            <p className="font-display text-2xl">Nenhum favorito ainda</p>
+            <p className="mt-2 text-fog">Toque no coração de um produto para guardá-lo aqui.</p>
+            <Link to="/" className="mt-6 inline-block rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+              Explorar produtos
+            </Link>
+          </div>
+        )}
+
+        {favorites && favorites.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {favorites.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>

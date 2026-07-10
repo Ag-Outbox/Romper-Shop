@@ -228,6 +228,10 @@ export function getProductBySlug(slug: string): Product | undefined {
   return PRODUCTS.find((p) => p.slug === slug);
 }
 
+export function getProductById(id: string): Product | undefined {
+  return PRODUCTS.find((p) => p.id === id);
+}
+
 /** Produtos relacionados: mesma categoria primeiro, completa com outros. */
 export function getRelated(product: Product, limit = 3): Product[] {
   const sameCat = PRODUCTS.filter(
