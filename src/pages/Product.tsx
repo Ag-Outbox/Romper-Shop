@@ -291,7 +291,7 @@ export default function Product() {
                   </p>
                 </div>
               </div>
-              <a href="#" className="text-sm text-fog hover:text-volt transition-colors">ver loja →</a>
+              <Link to={`/loja/${product.seller.slug}`} className="text-sm text-fog hover:text-volt transition-colors">ver loja →</Link>
             </div>
           </div>
         </div>

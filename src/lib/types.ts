@@ -93,7 +93,7 @@ export interface Address {
 export type OrderPaymentMethod = 'pix' | 'card' | 'cod';
 
 /** Status do sub-pedido (1 por vendedor), espelha order_status do schema. */
-export type SubOrderStatus = 'paid' | 'processing' | 'awaiting_cod';
+export type SubOrderStatus = 'paid' | 'processing' | 'awaiting_cod' | 'shipped' | 'delivered';
 
 export interface OrderSubOrder {
   sellerSlug: string;

@@ -181,6 +181,62 @@ export async function fetchRelated(product: Product, limit = 4): Promise<Product
   return list.filter((p) => p.id !== product.id).slice(0, limit);
 }
 
+export interface StoreInfo {
+  name: string;
+  slug: string;
+  ratingAvg: number;
+  ratingCount: number;
+  productCount: number;
+  salesCount: number;
+}
+
+/** Loja pública do vendedor: dados da loja + produtos ativos. */
+export async function fetchStore(slug: string): Promise<{ seller: StoreInfo; products: Product[] } | undefined> {
+  if (!isSupabaseConfigured || !supabase) {
+    const products = MOCK_PRODUCTS.filter((p) => p.seller.slug === slug);
+    if (products.length === 0) return undefined;
+    const s = products[0].seller;
+    return {
+      seller: {
+        name: s.name,
+        slug: s.slug,
+        ratingAvg: s.ratingAvg,
+        ratingCount: s.ratingCount,
+        productCount: products.length,
+        salesCount: products.reduce((n, p) => n + p.salesCount, 0),
+      },
+      products,
+    };
+  }
+
+  const { data: sellerRow, error } = await supabase
+    .from('sellers')
+    .select('id, store_name, store_slug, rating_avg, rating_count, total_sales')
+    .eq('store_slug', slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!sellerRow) return undefined;
+
+  const { data, error: e2 } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('status', 'active')
+    .eq('seller_id', sellerRow.id as string);
+  if (e2) throw e2;
+  const products = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
+  return {
+    seller: {
+      name: sellerRow.store_name as string,
+      slug: sellerRow.store_slug as string,
+      ratingAvg: Number(sellerRow.rating_avg),
+      ratingCount: sellerRow.rating_count as number,
+      productCount: products.length,
+      salesCount: sellerRow.total_sales as number,
+    },
+    products,
+  };
+}
+
 export async function searchProducts(query: string, sort: ProductSort = 'relevance'): Promise<Product[]> {
   const q = query.trim();
   if (!q) return [];

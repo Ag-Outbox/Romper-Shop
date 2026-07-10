@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Category from './pages/Category';
 import Search from './pages/Search';
 import Product from './pages/Product';
+import Store from './pages/Store';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Login from './pages/Login';
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/categoria/:slug" element={<Category />} />
           <Route path="/busca" element={<Search />} />
           <Route path="/produto/:slug" element={<Product />} />
+          <Route path="/loja/:slug" element={<Store />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/pedido/:id" element={<OrderConfirmation />} />
           <Route path="/entrar" element={<Login />} />

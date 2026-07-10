@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import { useAuth } from '../lib/auth';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
+import { listSellerSubOrders, updateSubOrderStatus, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
+import type { SubOrderStatus } from '../lib/types';
 
 /* ROMPER SHOP — Painel do vendedor (/vendedor).
    Catálogo/estoque em estado local (demo) seedado do catálogo. Publicar e
@@ -34,9 +37,24 @@ const seed: Row[] = PRODUCTS.map((p) => ({
 
 const inputCls = 'rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors';
 
+/** Próxima etapa do fulfillment para cada status. */
+const NEXT_STEP: Partial<Record<SubOrderStatus, { to: SubOrderStatus; label: string }>> = {
+  paid: { to: 'shipped', label: 'Marcar enviado' },
+  processing: { to: 'shipped', label: 'Marcar enviado' },
+  awaiting_cod: { to: 'shipped', label: 'Marcar enviado' },
+  shipped: { to: 'delivered', label: 'Marcar entregue' },
+};
+
 export default function SellerDashboard() {
   const { user } = useAuth();
+  const storeSlug = user?.storeSlug ?? '';
   const [rows, setRows] = useState<Row[]>(seed);
+  const [subOrders, setSubOrders] = useState(() => listSellerSubOrders(storeSlug));
+
+  const advance = (orderId: string, to: SubOrderStatus) => {
+    updateSubOrderStatus(orderId, storeSlug, to);
+    setSubOrders(listSellerSubOrders(storeSlug));
+  };
   const [showForm, setShowForm] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -125,7 +143,68 @@ export default function SellerDashboard() {
         </form>
       )}
 
-      <section className="mt-8 rounded-xl2 border border-line bg-surface overflow-hidden">
+      {/* Pedidos recebidos (sub-pedidos da loja) */}
+      <section className="mt-10">
+        <h2 className="font-display text-2xl font-semibold mb-5">
+          Pedidos recebidos
+          {subOrders.length > 0 && (
+            <span className="ml-3 rounded-full bg-volt px-2.5 py-1 align-middle font-mono text-xs text-ink">{subOrders.length}</span>
+          )}
+        </h2>
+
+        {subOrders.length === 0 ? (
+          <div className="rounded-xl2 border border-line bg-surface p-8 text-center text-fog text-sm">
+            Nenhum pedido para sua loja ainda. Quando um comprador finalizar uma compra
+            com itens seus, o sub-pedido aparece aqui.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {subOrders.map((so) => {
+              const next = NEXT_STEP[so.status];
+              const done = so.status === 'delivered';
+              return (
+                <div key={so.orderId} className="rounded-xl2 border border-line bg-surface p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link to={`/pedido/${so.orderId}`} className="font-mono text-sm text-mist hover:text-volt transition-colors">
+                        {so.orderId}
+                      </Link>
+                      <span className="text-xs text-fog">
+                        {new Date(so.createdAt).toLocaleDateString('pt-BR')} · {so.buyerName} · {so.city}/{so.uf}
+                      </span>
+                      {so.isCod && (
+                        <span className="rounded-full border border-volt/40 px-2.5 py-0.5 font-mono text-[11px] text-volt">◎ COD</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full px-3 py-1 font-mono text-xs ${done ? 'bg-volt/15 text-volt' : 'border border-line text-fog'}`}>
+                        {SUB_ORDER_STATUS_LABEL[so.status]}
+                      </span>
+                      {next && (
+                        <button
+                          onClick={() => advance(so.orderId, next.to)}
+                          className="rounded-full bg-volt px-4 py-1.5 text-xs font-semibold text-ink hover:bg-volt-dim transition-colors"
+                        >
+                          {next.label}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-sm">
+                    <span className="text-fog">
+                      {so.items.map((i) => `${i.qty}× ${i.title}${i.variantName ? ` (${i.variantName})` : ''}`).join(' · ')}
+                    </span>
+                    <span className="font-display">{formatBRL(so.subtotalCents)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <h2 className="mt-10 font-display text-2xl font-semibold">Catálogo</h2>
+      <section className="mt-5 rounded-xl2 border border-line bg-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

@@ -2,9 +2,9 @@ import { Link, useParams } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
-import { getOrder } from '../lib/orders';
+import { getOrder, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
 import { formatBRL } from '../lib/format';
-import type { OrderPaymentMethod, SubOrderStatus } from '../lib/types';
+import type { OrderPaymentMethod } from '../lib/types';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Confirmação de pedido (/pedido/:id)
@@ -16,12 +16,6 @@ const PAYMENT_LABEL: Record<OrderPaymentMethod, string> = {
   pix: 'Pix',
   card: 'Cartão de crédito',
   cod: 'Pagamento na entrega (COD)',
-};
-
-const STATUS_LABEL: Record<SubOrderStatus, string> = {
-  paid: 'Pago',
-  processing: 'Em separação',
-  awaiting_cod: 'Aguardando entrega',
 };
 
 export default function OrderConfirmation() {
@@ -100,7 +94,7 @@ export default function OrderConfirmation() {
                   <span className="text-mist">{s.sellerName}</span>
                 </div>
                 <span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-fog">
-                  {STATUS_LABEL[s.status]}
+                  {SUB_ORDER_STATUS_LABEL[s.status]}
                 </span>
               </div>
               <div className="mt-4 flex flex-col gap-3">
