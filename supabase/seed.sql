@@ -8,6 +8,35 @@
 -- Lojas reais de vendedores são criadas via cadastro (auth) — ver migration 0001.
 -- =============================================================================
 
+-- ---------- Fornecedores de dropship ----------
+-- Conectores dedicados (código em supabase/functions/dropship-import/providers/):
+insert into public.dropship_providers (name, slug, api_base_url, is_active, config) values
+  ('CJ Dropshipping', 'cjdropshipping', 'https://developers.cjdropshipping.com/api2.0/v1', true, '{}'),
+  ('Printful',         'printful',       'https://api.printful.com',                        true, '{}'),
+  ('AliExpress',       'aliexpress',     'https://api-sg.aliexpress.com/sync',               true, '{}'),
+  ('Demonstração',     'demo',           null,                                                true, '{}')
+on conflict (slug) do nothing;
+
+-- Exemplo de conector REST genérico (Zendrop) — troque o mapeamento pelos
+-- nomes de campo reais da sua conta antes de usar; veja o cabeçalho de
+-- supabase/functions/dropship-import/providers/generic-rest.ts.
+insert into public.dropship_providers (name, slug, api_base_url, is_active, config) values
+  ('Zendrop', 'zendrop', 'https://api.zendrop.com', false, '{
+     "baseUrl": "https://api.zendrop.com",
+     "productPath": "/v1/products/{id}",
+     "authHeader": "Authorization",
+     "authValueEnv": "ZENDROP_API_KEY",
+     "authValuePrefix": "Bearer ",
+     "fieldMap": {
+       "title": "product.title",
+       "description": "product.description",
+       "images": "product.images",
+       "costCents": "product.price",
+       "variants": "product.variants"
+     }
+   }'::jsonb)
+on conflict (slug) do nothing;
+
 -- ---------- Categorias ----------
 insert into public.categories (id, name, slug, position) values
   ('22222222-2222-2222-2222-222222222201', 'Moda',       'moda',       1),

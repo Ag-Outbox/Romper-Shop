@@ -107,3 +107,20 @@ npm run dev
 O `src/lib/supabase.ts` detecta as variáveis automaticamente: preencheu o `.env`,
 o app passa a ler `categories`, `products`, `product_images` e `product_variants`
 — sem tocar em nenhum componente. O `supabase/seed.sql` espelha o catálogo mock.
+
+## Importar produtos de fornecedores dropship (painel do vendedor)
+
+O botão **"Importar dropship"** em `/vendedor` chama `src/lib/dropship.ts`, que
+escolhe um de três caminhos conforme o fornecedor selecionado:
+
+| Fornecedor | Onde roda | Status |
+|---|---|---|
+| **Demo** | Navegador (`src/services/dropship/ExampleProvider.ts`) | ✅ Funciona sempre, sem credenciais — bom para testar o fluxo. |
+| **Colar JSON manualmente** | Navegador (`src/lib/manualImport.ts`) | ✅ Funciona para **qualquer** plataforma, sem API — cole os dados exportados do fornecedor. |
+| **CJ Dropshipping / Printful / AliExpress** | Supabase Edge Function (`supabase/functions/dropship-import/`) | 🟡 Implementados contra a documentação pública de cada API. **Não testados ao vivo** (sem rede/credenciais nesta sandbox) — confira nomes de campo e endpoints atuais antes de produção. AliExpress exige app aprovado no Open Platform. |
+| **Qualquer outro fornecedor REST** (Zendrop, Spocket, DSers...) | Supabase Edge Function, via `GenericRestProvider` | ⚙️ Configurável sem código: aponte `baseUrl` + mapeamento de campos em `dropship_providers.config`. Essas plataformas têm API de parceiro sob aprovação — por isso um conector configurável em vez de endpoints adivinhados. |
+
+Os conectores reais **nunca rodam no frontend** — as chaves de API ficam em
+secrets da Edge Function (`supabase secrets set ...`), nunca no bundle do
+navegador. Veja `supabase/functions/dropship-import/README.md` para o passo a
+passo de deploy e configuração de cada fornecedor.

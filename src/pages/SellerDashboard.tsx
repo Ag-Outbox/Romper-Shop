@@ -7,7 +7,12 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 import { listSellerSubOrders, updateSubOrderStatus, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
+import { availableProviders, importFromProvider } from '../lib/dropship';
+import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
+import { applyMarkup } from '../services/dropship/DropshipProvider';
 import type { SubOrderStatus } from '../lib/types';
+
+const DEFAULT_MARKUP_PERCENT = 40;
 
 /* ROMPER SHOP — Painel do vendedor (/vendedor).
    Catálogo/estoque em estado local (demo) seedado do catálogo. Publicar e
@@ -65,6 +70,14 @@ export default function SellerDashboard() {
   const [stock, setStock] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0].name);
 
+  const providers = useMemo(() => availableProviders(), []);
+  const [showImport, setShowImport] = useState(false);
+  const [importSlug, setImportSlug] = useState(providers[0]?.slug ?? 'example');
+  const [importInput, setImportInput] = useState('');
+  const [importCategory, setImportCategory] = useState(CATEGORIES[0].name);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
   const kpis = useMemo(() => {
     const active = rows.filter((r) => r.status === 'active').length;
     const sales = rows.reduce((n, r) => n + r.sales, 0);
@@ -90,12 +103,38 @@ export default function SellerDashboard() {
     flash('Produto publicado.');
   };
 
-  const importDropship = () => {
-    setRows((r) => [
-      { id: `imp-${Date.now()}`, title: 'Produto importado (dropship)', category: 'Tech', priceCents: 4990, stock: 999, sales: 0, source: 'dropship', status: 'draft' },
-      ...r,
-    ]);
-    flash('Item importado como rascunho — revise antes de publicar.');
+  const importDropship = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importInput.trim()) return;
+    setImportBusy(true);
+    setImportError(null);
+    try {
+      const normalized = await importFromProvider(importSlug, importInput.trim());
+      const sellCents = applyMarkup(normalized.costCents, DEFAULT_MARKUP_PERCENT);
+      const stockTotal = normalized.variants.length
+        ? normalized.variants.reduce((n, v) => n + v.stock, 0)
+        : 999;
+      setRows((r) => [
+        {
+          id: `imp-${Date.now()}`,
+          title: normalized.title,
+          category: importCategory,
+          priceCents: sellCents,
+          stock: stockTotal,
+          sales: 0,
+          source: 'dropship',
+          status: 'draft',
+        },
+        ...r,
+      ]);
+      setImportInput('');
+      setShowImport(false);
+      flash(`"${normalized.title}" importado como rascunho (markup de ${DEFAULT_MARKUP_PERCENT}% aplicado) — revise antes de publicar.`);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Falha ao importar produto.');
+    } finally {
+      setImportBusy(false);
+    }
   };
 
   return (
@@ -111,11 +150,65 @@ export default function SellerDashboard() {
         <button onClick={() => setShowForm((s) => !s)} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
           {showForm ? 'Fechar' : 'Publicar produto'}
         </button>
-        <button onClick={importDropship} className="rounded-full border border-line px-6 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
-          Importar dropship
+        <button onClick={() => setShowImport((s) => !s)} className="rounded-full border border-line px-6 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
+          {showImport ? 'Fechar' : 'Importar dropship'}
         </button>
         {note && <span className="font-mono text-xs text-volt">{note}</span>}
       </div>
+
+      {showImport && (
+        <form onSubmit={importDropship} className="mt-5 flex flex-col gap-3 rounded-xl2 border border-line bg-surface p-5">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-fog">Fornecedor</span>
+              <select className={inputCls} value={importSlug} onChange={(e) => setImportSlug(e.target.value)}>
+                {providers.map((p) => <option key={p.slug} value={p.slug}>{p.label}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-fog">Categoria de destino</span>
+              <select className={inputCls} value={importCategory} onChange={(e) => setImportCategory(e.target.value)}>
+                {CATEGORIES.map((c) => <option key={c.slug} value={c.name}>{c.name}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {providers.find((p) => p.slug === importSlug)?.hint && (
+            <p className="font-mono text-xs text-fog">{providers.find((p) => p.slug === importSlug)?.hint}</p>
+          )}
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-fog">
+              {importSlug === 'manual' ? 'Cole o JSON do produto' : 'URL ou ID do produto no fornecedor'}
+            </span>
+            {importSlug === 'manual' ? (
+              <textarea
+                className={`${inputCls} font-mono text-xs`}
+                rows={8}
+                value={importInput}
+                onChange={(e) => setImportInput(e.target.value)}
+                placeholder={MANUAL_IMPORT_EXAMPLE}
+              />
+            ) : (
+              <input
+                className={inputCls}
+                value={importInput}
+                onChange={(e) => setImportInput(e.target.value)}
+                placeholder={importSlug === 'example' ? 'qualquer texto (ex.: 123)' : 'cole a URL ou o ID do produto'}
+              />
+            )}
+          </label>
+
+          {importError && <p className="text-sm text-ember">{importError}</p>}
+
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={importBusy} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-60">
+              {importBusy ? 'Importando…' : 'Importar como rascunho'}
+            </button>
+            <span className="text-xs text-fog">markup padrão de {DEFAULT_MARKUP_PERCENT}% sobre o custo do fornecedor</span>
+          </div>
+        </form>
+      )}
 
       {showForm && (
         <form onSubmit={publish} className="mt-5 grid sm:grid-cols-4 gap-3 rounded-xl2 border border-line bg-surface p-5">

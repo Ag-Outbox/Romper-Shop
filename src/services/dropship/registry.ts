@@ -1,7 +1,12 @@
 /**
- * Registro central de conectores dropship.
- * Resolve um DropshipProvider pelo slug (que casa com dropship_providers.slug).
- * Para adicionar um fornecedor: implemente DropshipProvider e registre aqui.
+ * Registro central de conectores dropship — SÓ PARA USO NO FRONTEND EM MODO
+ * DEMO (sem segredos, sem chamada de rede real). Os conectores REAIS (CJ
+ * Dropshipping, Printful, AliExpress, e um conector REST genérico para
+ * qualquer outra plataforma) vivem em `supabase/functions/dropship-import/`,
+ * que roda em Deno no servidor — nunca no navegador, porque precisam de
+ * chaves de API que não podem vazar para o cliente. Veja `src/lib/dropship.ts`
+ * para o cliente que decide entre chamar a Edge Function (produção) ou este
+ * registry local (demo, sem Supabase configurado).
  */
 import { DropshipProvider } from './DropshipProvider';
 import { ExampleProvider } from './providers/ExampleProvider';
@@ -12,11 +17,8 @@ function register(p: DropshipProvider) {
   providers.set(p.slug, p);
 }
 
-// --- Conectores registrados ---
+// --- Conectores registrados (frontend, modo demo) ---
 register(new ExampleProvider());
-// register(new CJDropshippingProvider());
-// register(new DSersProvider());
-// register(new SpocketProvider());
 
 export function getProvider(slug: string): DropshipProvider {
   const p = providers.get(slug);
