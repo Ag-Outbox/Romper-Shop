@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { registerSeller } from './sellers';
 
 /* ---------------------------------------------------------------------------
    AUTENTICAÇÃO — Supabase-ready com fallback mock.
@@ -26,6 +27,8 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Auto-cadastro de vendedor (buyer -> seller). Só funciona a partir de 'buyer'. */
+  becomeSeller: (storeName: string, storeSlug: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -151,8 +154,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   };
 
+  const becomeSeller: AuthContextValue['becomeSeller'] = async (storeName, storeSlug) => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.rpc('become_seller', { store_name: storeName, store_slug: storeSlug });
+      if (error) throw new Error(error.message);
+      const { data } = await supabase.auth.getSession();
+      if (data.session) setUser(await toAuthUser(data.session.user.id, data.session.user.email));
+      return;
+    }
+
+    if (!user) throw new Error('Entre na sua conta antes de abrir uma loja.');
+    if (user.role !== 'buyer') throw new Error(`Só compradores podem abrir uma loja por aqui (papel atual: ${user.role}).`);
+
+    registerSeller({ slug: storeSlug, name: storeName, ownerId: user.id });
+
+    const users = readUsers().map((u) => (u.id === user.id ? { ...u, role: 'seller' as Role, storeSlug } : u));
+    writeUsers(users);
+    setSession({ ...user, role: 'seller', storeSlug });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isMock: !isSupabaseConfigured, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isMock: !isSupabaseConfigured, signIn, signUp, signOut, becomeSeller }}>
       {children}
     </AuthContext.Provider>
   );

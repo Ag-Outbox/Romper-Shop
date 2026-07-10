@@ -124,3 +124,50 @@ Os conectores reais **nunca rodam no frontend** — as chaves de API ficam em
 secrets da Edge Function (`supabase secrets set ...`), nunca no bundle do
 navegador. Veja `supabase/functions/dropship-import/README.md` para o passo a
 passo de deploy e configuração de cada fornecedor.
+
+O painel admin (`/admin`) tem o mesmo import, mas ligando o produto
+**diretamente no catálogo da plataforma** (sem vendedor no meio) — ver seção
+"Catálogo administrado".
+
+## Torne-se vendedor / Programa de afiliados
+
+Duas formas de outras pessoas venderem na Romper Shop, além do catálogo
+administrado pela plataforma:
+
+### Vendedor (`/vender`)
+
+Qualquer comprador pode abrir a própria loja em 1 minuto (nome + endereço da
+loja) e passar a publicar produtos ou importar de fornecedores dropship —
+exatamente como outros marketplaces (Shopee, Amazon, Mercado Livre) fazem.
+A loja nasce com status `pending` (visível só para o dono) até um admin
+aprovar em `/admin` — depois disso, os produtos ficam públicos.
+
+A transição de papel (`buyer` → `seller`) **nunca é feita pelo cliente
+diretamente** — passa pela função `become_seller()` (`supabase/migrations/
+0006_affiliates_and_upgrades.sql`), que roda como `security definer` e só
+aceita `buyer` como papel de origem. Isso evita a brecha óbvia de deixar
+qualquer usuário escrever o próprio `role` (e virar `admin`) via um `update`
+direto na tabela `profiles`.
+
+### Afiliados (`/afiliado`)
+
+Diferente de virar vendedor, ser afiliado **não muda o papel do usuário** —
+é aditivo. Qualquer pessoa logada (comprador, vendedor...) pode aderir,
+ganha um código único e um link de indicação (da home ou de um produto
+específico, via botão na página do produto). Quem compra por esse link em
+até 30 dias gera comissão para quem indicou; a comissão fica **pendente**
+até o sub-pedido correspondente ser marcado como **entregue** pelo vendedor
+— o mesmo evento que já disparava o histórico de pedidos do comprador.
+
+Auto-referência (a mesma pessoa comprando pelo próprio link) não gera
+comissão. Toda a lógica está em `src/lib/affiliates.ts` (mock em
+localStorage) com o schema espelhado em `affiliates` / `affiliate_commissions`
+na migration 0006.
+
+### Comissão da plataforma
+
+`src/lib/commission.ts` centraliza a taxa que a Romper Shop cobra por venda:
+produtos de **vendedor próprio** rendem 8% para a plataforma; produtos
+**dropship** (a loja usa uma conexão de fornecedor que a própria Romper Shop
+mantém) rendem 15% — visível no painel do vendedor ("Saldo a receber") e
+agregado no painel admin ("Receita da plataforma").

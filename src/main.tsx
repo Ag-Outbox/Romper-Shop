@@ -5,6 +5,7 @@ import './styles/globals.css';
 import { AuthProvider } from './lib/auth';
 import RequireAuth from './components/RequireAuth';
 import ScrollToTop from './components/ScrollToTop';
+import ReferralCapture from './components/ReferralCapture';
 import Home from './pages/Home';
 
 /* Code-splitting: cada página vira um chunk próprio; só a Home entra no
@@ -19,6 +20,8 @@ const Login = lazy(() => import('./pages/Login'));
 const Account = lazy(() => import('./pages/Account'));
 const SellerDashboard = lazy(() => import('./pages/SellerDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const BecomeSeller = lazy(() => import('./pages/BecomeSeller'));
+const Affiliate = lazy(() => import('./pages/Affiliate'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function Fallback() {
@@ -30,6 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <ScrollToTop />
+        <ReferralCapture />
         <Suspense fallback={<Fallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -43,6 +47,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/conta" element={<RequireAuth><Account /></RequireAuth>} />
             <Route path="/vendedor" element={<RequireAuth role="seller"><SellerDashboard /></RequireAuth>} />
             <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
+            <Route path="/vender" element={<RequireAuth><BecomeSeller /></RequireAuth>} />
+            <Route path="/afiliado" element={<RequireAuth><Affiliate /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

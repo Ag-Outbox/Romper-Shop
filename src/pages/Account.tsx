@@ -34,6 +34,17 @@ export default function Account() {
         <Stat label="RECUSAS COD" value="0" />
       </div>
 
+      {user?.role === 'buyer' && (
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link to="/vender" className="rounded-full border border-line px-5 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
+            Abrir minha loja →
+          </Link>
+          <Link to="/afiliado" className="rounded-full border border-line px-5 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
+            Virar afiliado e ganhar comissão →
+          </Link>
+        </div>
+      )}
+
       <section className="mt-10">
         <h2 className="font-display text-2xl font-semibold mb-5">Histórico de pedidos</h2>
 

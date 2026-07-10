@@ -13,6 +13,7 @@ import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
 import { useFavorites } from '../lib/useFavorites';
 import { useAuth } from '../lib/auth';
+import { getAffiliateByProfile } from '../lib/affiliates';
 import type { CartItem, Product, ProductVariant, Review } from '../lib/types';
 
 /* ---------------------------------------------------------------------------
@@ -183,6 +184,8 @@ export default function Product() {
   const navigate = useNavigate();
   const { add } = useCart();
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
+  const { user } = useAuth();
+  const affiliate = user ? getAffiliateByProfile(user.id) : undefined;
 
   const { data: product, loading } = useAsync(
     () => (slug ? fetchProductBySlug(slug) : Promise.resolve(undefined)),
@@ -345,6 +348,20 @@ export default function Product() {
               </div>
             )}
 
+            {affiliate && (
+              <button
+                onClick={async () => {
+                  const link = `${window.location.origin}/produto/${product.slug}?ref=${affiliate.code}`;
+                  await navigator.clipboard.writeText(link);
+                  setToast('Link de afiliado copiado');
+                  window.setTimeout(() => setToast(null), 2200);
+                }}
+                className="mt-3 inline-flex w-fit items-center gap-2 rounded-full border border-line px-4 py-2 text-sm text-fog hover:border-volt hover:text-volt transition-colors"
+              >
+                🔗 Copiar link de afiliado ({affiliate.commissionPercent}% de comissão)
+              </button>
+            )}
+
             {product.optionGroups.map((g) => (
               <div key={g.name} className="mt-7">
                 <div className="mb-3 flex items-center gap-2 text-sm">
@@ -469,8 +486,13 @@ export default function Product() {
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-volt px-6 py-3 text-sm font-semibold text-ink shadow-lg"
           >
-            {toast} ·{' '}
-            <Link to="/checkout" className="underline underline-offset-2">ver sacola</Link>
+            {toast}
+            {toast === 'Adicionado à sacola' && (
+              <>
+                {' '}·{' '}
+                <Link to="/checkout" className="underline underline-offset-2">ver sacola</Link>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -7,6 +7,7 @@ import {
   getRelated as mockRelated,
 } from './catalog';
 import { getReviews as mockGetReviews, addReview as mockAddReview } from './reviewsStore';
+import { getSellerAccount } from './sellers';
 import type { Product, ProductOptionGroup, ProductVariant, Review } from './types';
 
 /* ---------------------------------------------------------------------------
@@ -207,18 +208,26 @@ export interface StoreInfo {
 export async function fetchStore(slug: string): Promise<{ seller: StoreInfo; products: Product[] } | undefined> {
   if (!isSupabaseConfigured || !supabase) {
     const products = MOCK_PRODUCTS.filter((p) => p.seller.slug === slug);
-    if (products.length === 0) return undefined;
-    const s = products[0].seller;
+    if (products.length > 0) {
+      const s = products[0].seller;
+      return {
+        seller: {
+          name: s.name,
+          slug: s.slug,
+          ratingAvg: s.ratingAvg,
+          ratingCount: s.ratingCount,
+          productCount: products.length,
+          salesCount: products.reduce((n, p) => n + p.salesCount, 0),
+        },
+        products,
+      };
+    }
+    // Loja auto-cadastrada via /vender, ainda sem produto nenhum.
+    const account = getSellerAccount(slug);
+    if (!account) return undefined;
     return {
-      seller: {
-        name: s.name,
-        slug: s.slug,
-        ratingAvg: s.ratingAvg,
-        ratingCount: s.ratingCount,
-        productCount: products.length,
-        salesCount: products.reduce((n, p) => n + p.salesCount, 0),
-      },
-      products,
+      seller: { name: account.name, slug: account.slug, ratingAvg: 0, ratingCount: 0, productCount: 0, salesCount: 0 },
+      products: [],
     };
   }
 

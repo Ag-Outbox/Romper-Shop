@@ -7,9 +7,11 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 import { listSellerSubOrders, updateSubOrderStatus, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
+import { confirmCommissionsForSubOrder } from '../lib/affiliates';
 import { availableProviders, importFromProvider } from '../lib/dropship';
 import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
 import { applyMarkup } from '../services/dropship/DropshipProvider';
+import { PLATFORM_COMMISSION_PERCENT, platformCommissionCents } from '../lib/commission';
 import type { SubOrderStatus } from '../lib/types';
 
 const DEFAULT_MARKUP_PERCENT = 40;
@@ -60,6 +62,7 @@ export default function SellerDashboard() {
 
   const advance = (orderId: string, to: SubOrderStatus) => {
     updateSubOrderStatus(orderId, storeSlug, to);
+    if (to === 'delivered') confirmCommissionsForSubOrder(orderId, storeSlug);
     setSubOrders(listSellerSubOrders(storeSlug));
   };
   const [showForm, setShowForm] = useState(false);
@@ -82,7 +85,9 @@ export default function SellerDashboard() {
     const active = rows.filter((r) => r.status === 'active').length;
     const sales = rows.reduce((n, r) => n + r.sales, 0);
     const revenue = rows.reduce((n, r) => n + r.sales * r.priceCents, 0);
-    return { active, sales, revenue };
+    // Dropship rende mais para a plataforma (conexão com fornecedor é dela) — comissão maior nesses itens.
+    const commission = rows.reduce((n, r) => n + platformCommissionCents(r.source, r.sales * r.priceCents), 0);
+    return { active, sales, revenue, netCents: revenue - commission };
   }, [rows]);
 
   const flash = (msg: string) => {
@@ -143,7 +148,7 @@ export default function SellerDashboard() {
         <Stat label="FATURAMENTO" value={formatBRL(kpis.revenue)} hint="acumulado (estimado)" />
         <Stat label="VENDAS" value={kpis.sales.toLocaleString('pt-BR')} />
         <Stat label="PRODUTOS ATIVOS" value={kpis.active} />
-        <Stat label="SALDO A RECEBER" value={formatBRL(Math.round(kpis.revenue * 0.08))} hint="após comissão" />
+        <Stat label="SALDO A RECEBER" value={formatBRL(kpis.netCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">

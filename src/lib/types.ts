@@ -129,3 +129,38 @@ export interface Review {
   isVerified: boolean;
   createdAt: string;
 }
+
+/* ---- Afiliados (aditivo — não substitui o role do usuário) ---- */
+
+export interface Affiliate {
+  id: string;
+  profileId: string;
+  code: string;
+  commissionPercent: number;
+  status: 'active' | 'suspended';
+  clicks: number;
+  balanceCents: number;  // comissão confirmada (sub-pedido entregue)
+  pendingCents: number;  // comissão de pedidos ainda não entregues
+  createdAt: string;
+}
+
+export interface AffiliateCommission {
+  id: string;
+  affiliateId: string;
+  orderId: string;
+  sellerSlug: string;
+  sellerName: string;
+  amountCents: number;
+  status: 'pending' | 'confirmed';
+  createdAt: string;
+}
+
+/* ---- Vendedor auto-cadastrado (loja criada via /vender) ---- */
+
+export interface SellerAccount {
+  slug: string;
+  name: string;
+  ownerId: string;
+  status: 'pending' | 'active';
+  createdAt: string;
+}

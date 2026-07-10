@@ -222,12 +222,15 @@ function SellerCTA() {
               Cadastre sua loja, publique produtos e alcance milhares de compradores.
               Ou importe de fornecedores dropship em poucos cliques.
             </p>
+            <Link to="/afiliado" className="mt-4 inline-block text-sm text-fog hover:text-volt transition-colors">
+              Prefere só indicar produtos e ganhar comissão? Vire afiliado →
+            </Link>
           </div>
           <div className="flex gap-4">
-            <Link to="/vendedor" className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+            <Link to="/vender" className="rounded-full bg-volt px-7 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
               Abrir loja
             </Link>
-            <Link to="/vendedor" className="rounded-full border border-line px-7 py-3 text-sm hover:border-volt hover:text-volt transition-colors">
+            <Link to="/vender" className="rounded-full border border-line px-7 py-3 text-sm hover:border-volt hover:text-volt transition-colors">
               Importar dropship
             </Link>
           </div>

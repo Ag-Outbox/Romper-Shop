@@ -7,6 +7,8 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
 import { maskCep, isValidCep, lookupCep, codEligibility, UFS } from '../lib/cep';
 import { saveOrder, newOrderId } from '../lib/orders';
+import { recordCommissionsForOrder } from '../lib/affiliates';
+import { useAuth } from '../lib/auth';
 import type { Address, CartItem, Order, OrderSubOrder, SubOrderStatus } from '../lib/types';
 
 /* ---------------------------------------------------------------------------
@@ -57,6 +59,7 @@ const inputCls =
 export default function Checkout() {
   usePageMeta('Finalizar compra');
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { items, setQty, remove, subtotalCents, count, clear } = useCart();
 
   const [address, setAddress] = useState<Address>(EMPTY_ADDRESS);
@@ -129,6 +132,7 @@ export default function Checkout() {
       statusLabel: isCod ? 'Pedido confirmado — pague na entrega' : 'Pagamento aprovado',
     };
     saveOrder(order);
+    recordCommissionsForOrder(order, user?.id);
     clear();
     // Simula o retorno do provedor de pagamento antes de confirmar.
     setTimeout(() => navigate(`/pedido/${order.id}`), 400);
