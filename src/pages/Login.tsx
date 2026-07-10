@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import { useAuth, DEMO_LOGINS, type Role } from '../lib/auth';
+import { usePageMeta } from '../lib/usePageMeta';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Entrar / Criar conta (/entrar)
@@ -14,6 +15,7 @@ const DEST: Record<Role, string> = { buyer: '/conta', seller: '/vendedor', admin
 const inputCls = 'rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors';
 
 export default function Login() {
+  usePageMeta('Entrar');
   const { signIn, signUp, isMock } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

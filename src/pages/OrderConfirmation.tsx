@@ -3,6 +3,7 @@ import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import { getOrder, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
+import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
 import type { OrderPaymentMethod } from '../lib/types';
 
@@ -21,6 +22,7 @@ const PAYMENT_LABEL: Record<OrderPaymentMethod, string> = {
 export default function OrderConfirmation() {
   const { id } = useParams<{ id: string }>();
   const order = id ? getOrder(id) : undefined;
+  usePageMeta(order ? `Pedido ${order.id}` : 'Pedido');
 
   if (!order) {
     return (

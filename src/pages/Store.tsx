@@ -4,6 +4,7 @@ import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
+import { usePageMeta } from '../lib/usePageMeta';
 import { fetchStore } from '../lib/api';
 
 /* ---------------------------------------------------------------------------
@@ -15,6 +16,7 @@ import { fetchStore } from '../lib/api';
 export default function Store() {
   const { slug = '' } = useParams<{ slug: string }>();
   const { data, loading } = useAsync(() => fetchStore(slug), [slug]);
+  usePageMeta(data?.seller.name);
 
   if (loading) {
     return (

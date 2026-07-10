@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import { useAuth } from '../lib/auth';
+import { usePageMeta } from '../lib/usePageMeta';
 import { listOrders } from '../lib/orders';
 import { formatBRL } from '../lib/format';
 
 /* ROMPER SHOP — Conta do comprador (/conta): perfil, reputação e pedidos. */
 
 export default function Account() {
+  usePageMeta('Minha conta');
   const { user } = useAuth();
   const orders = listOrders();
   const totalSpent = orders.reduce((n, o) => n + o.totalCents, 0);

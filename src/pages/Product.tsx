@@ -6,6 +6,7 @@ import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
+import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductBySlug, fetchRelated } from '../lib/api';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
@@ -109,6 +110,8 @@ export default function Product() {
       Object.entries(selected).every(([k, val]) => v.options[k] === val),
     );
   }, [product, selected]);
+
+  usePageMeta(product?.title, product ? product.description.slice(0, 155) : undefined);
 
   if (loading) {
     return (

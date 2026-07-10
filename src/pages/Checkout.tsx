@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import { useCart, lineKey } from '../lib/useCart';
+import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
 import { maskCep, isValidCep, lookupCep, codEligibility, UFS } from '../lib/cep';
 import { saveOrder, newOrderId } from '../lib/orders';
@@ -54,6 +55,7 @@ const inputCls =
   'rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors';
 
 export default function Checkout() {
+  usePageMeta('Finalizar compra');
   const navigate = useNavigate();
   const { items, setQty, remove, subtotalCents, count, clear } = useCart();
 

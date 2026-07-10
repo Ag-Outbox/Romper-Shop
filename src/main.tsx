@@ -1,39 +1,51 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './styles/globals.css';
 import { AuthProvider } from './lib/auth';
 import RequireAuth from './components/RequireAuth';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
-import Category from './pages/Category';
-import Search from './pages/Search';
-import Product from './pages/Product';
-import Store from './pages/Store';
-import Checkout from './pages/Checkout';
-import OrderConfirmation from './pages/OrderConfirmation';
-import Login from './pages/Login';
-import Account from './pages/Account';
-import SellerDashboard from './pages/SellerDashboard';
-import AdminDashboard from './pages/AdminDashboard';
+
+/* Code-splitting: cada página vira um chunk próprio; só a Home entra no
+   bundle inicial. O fallback é discreto — as páginas têm skeletons próprios. */
+const Category = lazy(() => import('./pages/Category'));
+const Search = lazy(() => import('./pages/Search'));
+const Product = lazy(() => import('./pages/Product'));
+const Store = lazy(() => import('./pages/Store'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderConfirmation = lazy(() => import('./pages/OrderConfirmation'));
+const Login = lazy(() => import('./pages/Login'));
+const Account = lazy(() => import('./pages/Account'));
+const SellerDashboard = lazy(() => import('./pages/SellerDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+function Fallback() {
+  return <div className="grid min-h-[60vh] place-items-center text-sm text-fog">Carregando…</div>;
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/categoria/:slug" element={<Category />} />
-          <Route path="/busca" element={<Search />} />
-          <Route path="/produto/:slug" element={<Product />} />
-          <Route path="/loja/:slug" element={<Store />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/pedido/:id" element={<OrderConfirmation />} />
-          <Route path="/entrar" element={<Login />} />
-          <Route path="/conta" element={<RequireAuth><Account /></RequireAuth>} />
-          <Route path="/vendedor" element={<RequireAuth role="seller"><SellerDashboard /></RequireAuth>} />
-          <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
-          <Route path="*" element={<Home />} />
-        </Routes>
+        <ScrollToTop />
+        <Suspense fallback={<Fallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/categoria/:slug" element={<Category />} />
+            <Route path="/busca" element={<Search />} />
+            <Route path="/produto/:slug" element={<Product />} />
+            <Route path="/loja/:slug" element={<Store />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/pedido/:id" element={<OrderConfirmation />} />
+            <Route path="/entrar" element={<Login />} />
+            <Route path="/conta" element={<RequireAuth><Account /></RequireAuth>} />
+            <Route path="/vendedor" element={<RequireAuth role="seller"><SellerDashboard /></RequireAuth>} />
+            <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,

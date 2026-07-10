@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 
@@ -8,6 +9,7 @@ import { formatBRL } from '../lib/format';
    Métricas agregadas do catálogo (mock). No Supabase, viram queries/views. */
 
 export default function AdminDashboard() {
+  usePageMeta('Painel admin');
   const { sellers, gmvCents, codShare } = useMemo(() => {
     const map = new Map<string, { name: string; slug: string; products: number; sales: number; ratingAvg: number }>();
     for (const p of PRODUCTS) {

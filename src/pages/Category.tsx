@@ -5,6 +5,7 @@ import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
+import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductsByCategory, fetchCategories, type ProductSort } from '../lib/api';
 
 /* ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ export default function Category() {
   const { data: products, loading, error } = useAsync(() => fetchProductsByCategory(slug, sort), [slug, sort]);
 
   const categoryName = categories?.find((c) => c.slug === slug)?.name ?? slug;
+  usePageMeta(categoryName);
 
   return (
     <>

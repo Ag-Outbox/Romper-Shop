@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import { useAuth } from '../lib/auth';
+import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 import { listSellerSubOrders, updateSubOrderStatus, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
@@ -46,6 +47,7 @@ const NEXT_STEP: Partial<Record<SubOrderStatus, { to: SubOrderStatus; label: str
 };
 
 export default function SellerDashboard() {
+  usePageMeta('Painel do vendedor');
   const { user } = useAuth();
   const storeSlug = user?.storeSlug ?? '';
   const [rows, setRows] = useState<Row[]>(seed);

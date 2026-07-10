@@ -5,6 +5,7 @@ import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
+import { usePageMeta } from '../lib/usePageMeta';
 import { searchProducts, type ProductSort } from '../lib/api';
 
 /* ---------------------------------------------------------------------------
@@ -46,6 +47,7 @@ export default function Search() {
   const [sort, setSort] = useState<ProductSort>('relevance');
 
   const { data: products, loading, error } = useAsync(() => searchProducts(q, sort), [q, sort]);
+  usePageMeta(q ? `Busca: ${q}` : 'Busca');
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

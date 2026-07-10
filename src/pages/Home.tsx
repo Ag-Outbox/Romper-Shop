@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '../components/Reveal';
 import SiteFooter from '../components/SiteFooter';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
+import { usePageMeta } from '../lib/usePageMeta';
 import { getRanking } from '../lib/catalog';
 import { useAuth, type Role } from '../lib/auth';
 
@@ -238,6 +239,7 @@ function SellerCTA() {
 
 export default function Home() {
   useSmoothScroll();
+  usePageMeta();
   return (
     <main>
       <Hero />
