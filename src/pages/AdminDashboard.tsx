@@ -9,7 +9,8 @@ import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
 import { applyMarkup } from '../services/dropship/DropshipProvider';
 import { PLATFORM_COMMISSION_PERCENT, platformCommissionCents } from '../lib/commission';
 import { listAllAffiliates } from '../lib/affiliates';
-import { listPendingSellers, approveSeller } from '../lib/sellers';
+import { listPendingSellers, approveSeller, getSellerAccount } from '../lib/sellers';
+import { listPendingPayouts, markPayoutPaid } from '../lib/payouts';
 import type { SellerAccount } from '../lib/types';
 
 /* ROMPER SHOP — Painel admin (/admin): visão da plataforma + catálogo
@@ -56,6 +57,16 @@ export default function AdminDashboard() {
   const approve = (slug: string) => {
     approveSeller(slug);
     setPendingSellers(listPendingSellers());
+  };
+
+  const [pendingPayouts, setPendingPayouts] = useState(() => listPendingPayouts());
+  const payoutOwnerLabel = (p: (typeof pendingPayouts)[number]) => {
+    if (p.ownerType === 'seller') return getSellerAccount(p.ownerId)?.name ?? p.ownerId;
+    return `Afiliado ${affiliates.find((a) => a.id === p.ownerId)?.code ?? p.ownerId}`;
+  };
+  const payOut = (id: string) => {
+    markPayoutPaid(id);
+    setPendingPayouts(listPendingPayouts());
   };
 
   // Catálogo administrado pela plataforma (dropship direto, sem vendedor no meio)
@@ -202,6 +213,32 @@ export default function AdminDashboard() {
                 <button onClick={() => approve(s.slug)} className="rounded-full bg-volt px-4 py-1.5 text-xs font-semibold text-ink hover:bg-volt-dim transition-colors">
                   Aprovar loja
                 </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {pendingPayouts.length > 0 && (
+        <section className="mt-10 rounded-xl2 border border-volt/40 bg-volt/5 p-5">
+          <h2 className="font-mono text-xs text-volt tracking-widest mb-4">
+            {pendingPayouts.length} SAQUE{pendingPayouts.length > 1 ? 'S' : ''} PENDENTE{pendingPayouts.length > 1 ? 'S' : ''}
+          </h2>
+          <div className="flex flex-col gap-2">
+            {pendingPayouts.map((p) => (
+              <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
+                <div>
+                  <p className="text-sm text-mist">{payoutOwnerLabel(p)}</p>
+                  <p className="text-xs text-fog">
+                    {p.ownerType === 'seller' ? 'vendedor' : 'afiliado'} · solicitado em {new Date(p.requestedAt).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-display text-lg">{formatBRL(p.amountCents)}</span>
+                  <button onClick={() => payOut(p.id)} className="rounded-full bg-volt px-4 py-1.5 text-xs font-semibold text-ink hover:bg-volt-dim transition-colors">
+                    Marcar como pago
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -57,3 +57,15 @@ export function requestAffiliatePayout(affiliateId: string, amountCents: number)
   if (amountCents <= 0) throw new Error('Não há saldo disponível para saque.');
   return request('affiliate', affiliateId, amountCents);
 }
+
+/** Todos os saques pendentes, de todo mundo — fila do admin processar. */
+export function listPendingPayouts(): Payout[] {
+  return readAll()
+    .filter((p) => p.status === 'pending')
+    .sort((a, b) => new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime());
+}
+
+export function markPayoutPaid(id: string): void {
+  const all = readAll().map((p) => (p.id === id ? { ...p, status: 'paid' as const } : p));
+  writeAll(all);
+}

@@ -7,6 +7,7 @@ import { useSmoothScroll } from '../lib/useSmoothScroll';
 import { usePageMeta } from '../lib/usePageMeta';
 import { getRanking } from '../lib/catalog';
 import { useAuth, type Role } from '../lib/auth';
+import { pendingActionCount } from '../lib/notifications';
 
 const ACCOUNT_PATH: Record<Role, string> = { buyer: '/conta', seller: '/vendedor', admin: '/admin' };
 
@@ -58,9 +59,14 @@ function Hero() {
         </div>
         <Link
           to={user ? ACCOUNT_PATH[user.role] : '/entrar'}
-          className="rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
+          className="relative rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
         >
           {user ? user.fullName.split(' ')[0] : 'Entrar'}
+          {pendingActionCount(user) > 0 && (
+            <span className="ml-2 inline-flex items-center justify-center rounded-full bg-ember px-1.5 min-w-5 h-5 text-xs font-semibold text-ink">
+              {pendingActionCount(user)}
+            </span>
+          )}
         </Link>
       </nav>
 
