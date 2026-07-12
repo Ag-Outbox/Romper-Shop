@@ -27,8 +27,8 @@ stub em `recommendationEngine.ts`).
 
 ## 1. Descoberta e Catálogo
 
-- [ ] **A1** Filtros na categoria/busca (preço, nota mínima, COD, desconto) — M
-- [ ] **A2** Paginação / carregar mais — S
+- [x] **A1** Filtros na categoria/busca (preço, nota mínima, COD, desconto) — M
+- [x] **A2** Paginação / carregar mais — S
 - [ ] **A3** Ofertas relâmpago com contador regressivo — M
 - [ ] **A4** Cupons (loja e plataforma) — M/L
 - [ ] **A5** Vistos recentemente — S
@@ -57,8 +57,8 @@ stub em `recommendationEngine.ts`).
 
 ## 4. Mobile-first
 
-- [ ] **D1** Bottom navigation mobile — S
-- [ ] **D2** Auditoria responsiva completa (390px) — M
+- [x] **D1** Bottom navigation mobile — S
+- [x] **D2** Auditoria responsiva completa (390px) — M
 - [ ] **D3** PWA instalável — S
 
 ## 5. Foco — Admin importar fácil

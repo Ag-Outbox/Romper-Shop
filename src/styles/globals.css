@@ -20,6 +20,10 @@
     @apply bg-ink text-mist font-sans antialiased;
     overflow-x: hidden;
   }
+  /* Espaço pro MobileTabBar (fixed, só < md) não cobrir rodapé/conteúdo */
+  @media (max-width: 767px) {
+    body { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+  }
   ::selection { @apply bg-volt text-ink; }
   /* Foco visível na navegação por teclado (a11y) */
   :focus-visible {

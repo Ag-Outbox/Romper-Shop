@@ -30,7 +30,7 @@ export default function TopBar() {
 
         <form
           onSubmit={submit}
-          className="flex flex-1 items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 max-w-xl focus-within:border-volt transition-colors"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 max-w-xl focus-within:border-volt transition-colors"
         >
           <span className="text-fog text-sm">⌕</span>
           <input
@@ -38,7 +38,7 @@ export default function TopBar() {
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Buscar produtos…"
             aria-label="Buscar produtos"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-fog"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-fog"
           />
         </form>
 

@@ -6,6 +6,7 @@ import { AuthProvider } from './lib/auth';
 import RequireAuth from './components/RequireAuth';
 import ScrollToTop from './components/ScrollToTop';
 import ReferralCapture from './components/ReferralCapture';
+import MobileTabBar from './components/MobileTabBar';
 import Home from './pages/Home';
 
 /* Code-splitting: cada página vira um chunk próprio; só a Home entra no
@@ -52,6 +53,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        <MobileTabBar />
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
