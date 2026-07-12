@@ -3,6 +3,10 @@ import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '../components/Reveal';
 import SiteFooter from '../components/SiteFooter';
+import ProductCard from '../components/ProductCard';
+import Countdown from '../components/Countdown';
+import RecentlyViewed from '../components/RecentlyViewed';
+import { getFlashSale } from '../lib/flashSale';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
 import { usePageMeta } from '../lib/usePageMeta';
 import { getRanking } from '../lib/catalog';
@@ -176,6 +180,36 @@ function CategoryGrid() {
   );
 }
 
+function FlashSale() {
+  const { endsAt, products } = getFlashSale();
+  if (products.length === 0) return null;
+  return (
+    <section id="relampago" className="px-5 md:px-10 py-20 md:py-28 border-t border-line">
+      <Reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="font-mono text-xs text-ember tracking-widest mb-4">⚡ OFERTA RELÂMPAGO</p>
+            <h2 className="font-display text-4xl md:text-6xl font-semibold text-balance">
+              Preço derretendo. <span className="text-fog">Por pouco tempo.</span>
+            </h2>
+          </div>
+          <div className="rounded-xl2 border border-ember/40 bg-ember/10 px-5 py-3">
+            <p className="font-mono text-[10px] text-fog tracking-widest">TERMINA EM</p>
+            <Countdown endsAt={endsAt} className="text-2xl text-ember" />
+          </div>
+        </div>
+      </Reveal>
+      <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {products.map((p, i) => (
+          <Reveal key={p.id} delay={Math.min(i, 6) * 0.05} y={16}>
+            <ProductCard product={p} />
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AlgorithmTeaser() {
   return (
     <section id="algoritmo" className="px-5 md:px-10 py-20 md:py-28 border-t border-line">
@@ -285,8 +319,10 @@ export default function Home() {
       <Hero />
       <Marquee />
       <CategoryGrid />
+      <FlashSale />
       <AlgorithmTeaser />
       <CODBand />
+      <RecentlyViewed />
       <SellerCTA />
       <SiteFooter />
     </main>

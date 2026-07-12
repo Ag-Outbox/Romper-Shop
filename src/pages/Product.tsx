@@ -9,6 +9,8 @@ import SmartImage from '../components/SmartImage';
 import { useAsync } from '../lib/useAsync';
 import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductBySlug, fetchRelated, fetchReviews, submitReview } from '../lib/api';
+import { recordView } from '../lib/recentlyViewed';
+import RecentlyViewed from '../components/RecentlyViewed';
 import { hasVerifiedPurchase, hasReviewed } from '../lib/reviewsStore';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
@@ -216,6 +218,7 @@ export default function Product() {
     setSelected(init);
     setQty(1);
     setImgOverride(null);
+    if (product) recordView(product.id);
   }, [product]);
 
   const variant: ProductVariant | undefined = useMemo(() => {
@@ -501,6 +504,8 @@ export default function Product() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <RecentlyViewed excludeId={product.id} />
 
       <SiteFooter />
     </>
