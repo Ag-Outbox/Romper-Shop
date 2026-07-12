@@ -90,10 +90,23 @@ export interface Address {
   uf: string;
 }
 
+/** Endereço salvo pelo comprador para reutilizar no checkout. */
+export interface SavedAddress extends Address {
+  id: string;
+  label: string;      // "Casa", "Trabalho"…
+  isDefault: boolean;
+}
+
 export type OrderPaymentMethod = 'pix' | 'card' | 'cod';
 
 /** Status do sub-pedido (1 por vendedor), espelha order_status do schema. */
 export type SubOrderStatus = 'paid' | 'processing' | 'awaiting_cod' | 'shipped' | 'delivered';
+
+/** Um evento na linha do tempo de rastreio do sub-pedido. */
+export interface StatusEvent {
+  status: SubOrderStatus;
+  at: string; // ISO
+}
 
 export interface OrderSubOrder {
   sellerSlug: string;
@@ -101,6 +114,8 @@ export interface OrderSubOrder {
   items: CartItem[];
   subtotalCents: number;
   status: SubOrderStatus;
+  /** Histórico de status (rastreio). Pedidos antigos podem não ter. */
+  history?: StatusEvent[];
 }
 
 export interface Order {

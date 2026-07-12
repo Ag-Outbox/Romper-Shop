@@ -75,13 +75,15 @@ export function listSellerSubOrders(sellerSlug: string): SellerSubOrder[] {
   );
 }
 
-/** Avança o status de UM sub-pedido (fulfillment do vendedor). */
+/** Avança o status de UM sub-pedido (fulfillment do vendedor) e registra
+ *  o evento na linha do tempo de rastreio. */
 export function updateSubOrderStatus(orderId: string, sellerSlug: string, status: SubOrderStatus): void {
   const all = readAll();
   const order = all.find((o) => o.id === orderId);
   const sub = order?.subOrders.find((s) => s.sellerSlug === sellerSlug);
   if (!order || !sub) return;
   sub.status = status;
+  sub.history = [...(sub.history ?? []), { status, at: new Date().toISOString() }];
   writeAll(all);
 }
 

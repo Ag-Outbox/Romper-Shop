@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
@@ -8,6 +9,7 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { useAsync } from '../lib/useAsync';
 import { useFavorites } from '../lib/useFavorites';
 import { listOrders } from '../lib/orders';
+import { listAddresses, removeAddress, setDefaultAddress } from '../lib/addresses';
 import { fetchProductById } from '../lib/api';
 import { formatBRL } from '../lib/format';
 import type { Product } from '../lib/types';
@@ -20,6 +22,7 @@ export default function Account() {
   const orders = listOrders();
   const totalSpent = orders.reduce((n, o) => n + o.totalCents, 0);
 
+  const [addresses, setAddresses] = useState(() => listAddresses());
   const { ids: favoriteIds } = useFavorites();
   const { data: favorites, loading: loadingFavorites } = useAsync(async () => {
     const list = await Promise.all([...favoriteIds].map(fetchProductById));
@@ -80,6 +83,47 @@ export default function Account() {
                 </Link>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl font-semibold mb-5">Meus endereços</h2>
+        {addresses.length === 0 ? (
+          <div className="rounded-xl2 border border-line bg-surface p-8 text-center">
+            <p className="text-fog">Nenhum endereço salvo — no checkout, marque “salvar este endereço”.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {addresses.map((a) => (
+              <div key={a.id} className="min-w-0 rounded-xl2 border border-line bg-surface p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-mist">{a.label}</p>
+                  {a.isDefault && (
+                    <span className="rounded-full bg-volt/15 px-2.5 py-0.5 font-mono text-[10px] tracking-widest text-volt">PADRÃO</span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-fog">{a.recipient}</p>
+                <p className="text-sm text-fog">{a.street}, {a.number}{a.complement ? ` — ${a.complement}` : ''}</p>
+                <p className="text-sm text-fog">{a.district} · {a.city}/{a.uf} · {a.cep}</p>
+                <div className="mt-3 flex gap-4 border-t border-line pt-3">
+                  {!a.isDefault && (
+                    <button
+                      onClick={() => { setDefaultAddress(a.id); setAddresses(listAddresses()); }}
+                      className="text-xs text-fog hover:text-volt transition-colors"
+                    >
+                      tornar padrão
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { removeAddress(a.id); setAddresses(listAddresses()); }}
+                    className="text-xs text-fog hover:text-ember transition-colors"
+                  >
+                    remover
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>

@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
+import OrderTimeline from '../components/OrderTimeline';
 import { getOrder, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
 import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
@@ -113,6 +114,14 @@ export default function OrderConfirmation() {
                   </div>
                 ))}
               </div>
+
+              {/* rastreio */}
+              <details className="mt-4 group" open={order.subOrders.length === 1}>
+                <summary className="cursor-pointer select-none font-mono text-xs text-fog tracking-widest hover:text-volt transition-colors">
+                  RASTREIO <span className="group-open:hidden">▸</span><span className="hidden group-open:inline">▾</span>
+                </summary>
+                <OrderTimeline sub={s} createdAt={order.createdAt} isCod={order.isCod} />
+              </details>
             </div>
           ))}
         </section>
@@ -139,9 +148,9 @@ export default function OrderConfirmation() {
           <Link to="/" className="rounded-full bg-volt px-7 py-3 text-center text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
             Continuar comprando
           </Link>
-          <a href="#" className="rounded-full border border-line px-7 py-3 text-center text-sm hover:border-volt hover:text-volt transition-colors">
-            Acompanhar pedido
-          </a>
+          <Link to="/conta" className="rounded-full border border-line px-7 py-3 text-center text-sm hover:border-volt hover:text-volt transition-colors">
+            Ver meus pedidos
+          </Link>
         </div>
       </main>
       <SiteFooter />

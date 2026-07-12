@@ -7,6 +7,7 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
 import { maskCep, isValidCep, lookupCep, codEligibility, UFS } from '../lib/cep';
 import { saveOrder, newOrderId } from '../lib/orders';
+import { listAddresses, saveAddress } from '../lib/addresses';
 import { validateCoupon, redeemCoupon } from '../lib/coupons';
 import { recordCommissionsForOrder } from '../lib/affiliates';
 import { useAuth } from '../lib/auth';
@@ -28,6 +29,15 @@ const EMPTY_ADDRESS: Address = {
   recipient: '', phone: '', cep: '', street: '', number: '',
   complement: '', district: '', city: '', uf: '',
 };
+
+/** Extrai só os campos de Address de um SavedAddress (descarta id/label/isDefault). */
+function toAddress(a: Address): Address {
+  return {
+    recipient: a.recipient, phone: a.phone, cep: a.cep, street: a.street,
+    number: a.number, complement: a.complement, district: a.district,
+    city: a.city, uf: a.uf,
+  };
+}
 
 function groupBySeller(items: CartItem[]): OrderSubOrder[] {
   const map = new Map<string, OrderSubOrder>();
@@ -63,7 +73,14 @@ export default function Checkout() {
   const { user } = useAuth();
   const { items, setQty, remove, subtotalCents, count, clear } = useCart();
 
-  const [address, setAddress] = useState<Address>(EMPTY_ADDRESS);
+  // Endereços salvos: o padrão já entra preenchido; escolher outro troca o form.
+  const [savedAddresses] = useState(() => listAddresses());
+  const defaultSaved = savedAddresses.find((a) => a.isDefault);
+  const [selectedId, setSelectedId] = useState<string>(defaultSaved?.id ?? '');
+  const [saveThis, setSaveThis] = useState(false);
+  const [saveLabel, setSaveLabel] = useState('');
+
+  const [address, setAddress] = useState<Address>(defaultSaved ? toAddress(defaultSaved) : EMPTY_ADDRESS);
   const [errors, setErrors] = useState<Partial<Record<keyof Address, string>>>({});
   const [tab, setTab] = useState<PayTab>('online');
   const [onlineMethod, setOnlineMethod] = useState<OnlineMethod>('pix');
@@ -102,6 +119,21 @@ export default function Checkout() {
   const set = (k: keyof Address, v: string) => {
     setAddress((a) => ({ ...a, [k]: v }));
     setErrors((e) => ({ ...e, [k]: undefined }));
+    setSelectedId(''); // editar o form = endereço novo, não o salvo
+  };
+
+  const pickSaved = (id: string) => {
+    if (!id) {
+      setSelectedId('');
+      setAddress(EMPTY_ADDRESS);
+      return;
+    }
+    const found = savedAddresses.find((a) => a.id === id);
+    if (found) {
+      setSelectedId(id);
+      setAddress(toAddress(found));
+      setErrors({});
+    }
   };
 
   const onCepChange = async (raw: string) => {
@@ -142,10 +174,12 @@ export default function Checkout() {
     setSubmitting(true);
     const isCod = tab === 'cod';
     const status: SubOrderStatus = isCod ? 'awaiting_cod' : 'processing';
-    const subOrders = groups.map((g) => ({ ...g, status }));
+    const createdAt = new Date().toISOString();
+    const subOrders = groups.map((g) => ({ ...g, status, history: [{ status, at: createdAt }] }));
+    if (saveThis && !selectedId) saveAddress(address, saveLabel);
     const order: Order = {
       id: newOrderId(),
-      createdAt: new Date().toISOString(),
+      createdAt,
       address,
       paymentMethod: isCod ? 'cod' : onlineMethod,
       isCod,
@@ -241,6 +275,35 @@ export default function Checkout() {
             {/* ENTREGA */}
             <section id="entrega" className="rounded-xl2 border border-line bg-surface p-5 md:p-6">
               <h2 className="font-mono text-xs text-fog tracking-widest mb-4">ENTREGA</h2>
+
+              {savedAddresses.length > 0 && (
+                <div className="mb-5 flex flex-wrap gap-2">
+                  {savedAddresses.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => pickSaved(a.id)}
+                      className={`rounded-full border px-4 py-2 text-left text-sm transition-colors ${
+                        selectedId === a.id ? 'border-volt text-volt' : 'border-line text-fog hover:border-fog'
+                      }`}
+                    >
+                      <span className="font-medium">{a.label}</span>
+                      {a.isDefault && <span className="ml-1.5 font-mono text-[10px] tracking-widest">PADRÃO</span>}
+                      <span className="block text-xs opacity-70">{a.street}, {a.number} · {a.city}/{a.uf}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => pickSaved('')}
+                    className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                      selectedId === '' ? 'border-volt text-volt' : 'border-line text-fog hover:border-fog'
+                    }`}
+                  >
+                    + Novo endereço
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Destinatário" error={errors.recipient} className="col-span-2 sm:col-span-1">
                   <input className={inputCls} value={address.recipient} onChange={(e) => set('recipient', e.target.value)} placeholder="Nome completo" />
@@ -273,6 +336,29 @@ export default function Checkout() {
                   </select>
                 </Field>
               </div>
+
+              {!selectedId && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-fog">
+                    <input
+                      type="checkbox"
+                      checked={saveThis}
+                      onChange={(e) => setSaveThis(e.target.checked)}
+                      className="h-4 w-4 accent-[#CCFF00]"
+                    />
+                    Salvar este endereço para as próximas compras
+                  </label>
+                  {saveThis && (
+                    <input
+                      value={saveLabel}
+                      onChange={(e) => setSaveLabel(e.target.value)}
+                      placeholder="Apelido (ex.: Casa)"
+                      aria-label="Apelido do endereço"
+                      className="min-w-0 rounded-lg border border-line bg-ink px-3 py-2 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors"
+                    />
+                  )}
+                </div>
+              )}
             </section>
 
             {/* PAGAMENTO */}

@@ -43,8 +43,8 @@ stub em `recommendationEngine.ts`).
 - [ ] **B1** Pix real — L *(precisa gateway, ex. Mercado Pago)*
 - [ ] **B2** Cartão parcelado — L *(idem)*
 - [ ] **B3** Frete real por CEP/regras da loja — M
-- [ ] **B4** Múltiplos endereços salvos — M
-- [ ] **B5** Rastreamento com timeline — M
+- [x] **B4** Múltiplos endereços salvos — M
+- [x] **B5** Rastreamento com timeline — M
 - [ ] **B6** Cancelamento/devolução/reembolso (RMA) — L
 - [ ] **B7** Confirmação COD por SMS/WhatsApp — M *(precisa Supabase + provedor SMS)*
 - [ ] **B8** Carteira/Cashback — M
