@@ -32,8 +32,8 @@ stub em `recommendationEngine.ts`).
 - [x] **A3** Ofertas relâmpago com contador regressivo — M
 - [x] **A4** Cupons (loja e plataforma) — M/L
 - [x] **A5** Vistos recentemente — S
-- [ ] **A6** Perguntas & Respostas no produto — M
-- [ ] **A7** Avaliações 2.0 (fotos, útil, resposta do vendedor) — M *(foto real precisa de Storage)*
+- [x] **A6** Perguntas & Respostas no produto — M
+- [x] **A7** Avaliações 2.0 (útil, resposta do vendedor) — M *(falta foto: precisa de Storage)*
 - [ ] **A8** Selos de confiança (Loja Oficial, Envio Rápido) — S
 - [ ] **A9** Notificar queda de preço / voltou ao estoque — M
 - [ ] **A10** Motor de recomendação real (implementar o stub) — L *(precisa Supabase + cron)*

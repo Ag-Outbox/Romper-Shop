@@ -155,6 +155,11 @@ export interface Coupon {
 
 /* ---- Avaliações (só com compra verificada, 1 por comprador/produto) ---- */
 
+export interface SellerReply {
+  body: string;
+  at: string;
+}
+
 export interface Review {
   id: string;
   productId: string;
@@ -165,6 +170,21 @@ export interface Review {
   body?: string;
   isVerified: boolean;
   createdAt: string;
+  /** Votos de "útil" (agregado). */
+  helpfulCount?: number;
+  /** Resposta pública do vendedor. */
+  sellerReply?: SellerReply;
+}
+
+/* ---- Perguntas & Respostas no produto ---- */
+
+export interface Question {
+  id: string;
+  productId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  answer?: SellerReply;
 }
 
 /* ---- Afiliados (aditivo — não substitui o role do usuário) ---- */

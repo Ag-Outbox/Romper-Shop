@@ -11,7 +11,8 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductBySlug, fetchRelated, fetchReviews, submitReview } from '../lib/api';
 import { recordView } from '../lib/recentlyViewed';
 import RecentlyViewed from '../components/RecentlyViewed';
-import { hasVerifiedPurchase, hasReviewed } from '../lib/reviewsStore';
+import { hasVerifiedPurchase, hasReviewed, hasVotedHelpful, toggleHelpful } from '../lib/reviewsStore';
+import { listQuestions, askQuestion } from '../lib/qna';
 import { formatBRL, discountPercent } from '../lib/format';
 import { useCart } from '../lib/useCart';
 import { useFavorites } from '../lib/useFavorites';
@@ -69,7 +70,9 @@ function Gallery({ images, activeIndex, onSelect, title }: {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, sellerName }: { review: Review; sellerName: string }) {
+  const [count, setCount] = useState(review.helpfulCount ?? 0);
+  const [voted, setVoted] = useState(() => hasVotedHelpful(review.id));
   return (
     <div className="rounded-xl2 border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-3">
@@ -84,11 +87,102 @@ function ReviewCard({ review }: { review: Review }) {
       </div>
       {review.title && <p className="mt-3 text-sm text-mist font-medium">{review.title}</p>}
       {review.body && <p className="mt-1 text-sm text-fog leading-relaxed">{review.body}</p>}
+
+      {review.sellerReply && (
+        <div className="mt-3 rounded-lg border border-line bg-ink/40 p-3">
+          <p className="font-mono text-[10px] text-volt tracking-widest">RESPOSTA DE {sellerName.toUpperCase()}</p>
+          <p className="mt-1 text-sm text-fog leading-relaxed">{review.sellerReply.body}</p>
+        </div>
+      )}
+
+      <button
+        onClick={() => { setCount(toggleHelpful(review.id)); setVoted((v) => !v); }}
+        aria-pressed={voted}
+        className={`mt-3 rounded-full border px-3 py-1 text-xs transition-colors ${
+          voted ? 'border-volt text-volt' : 'border-line text-fog hover:border-fog'
+        }`}
+      >
+        Útil{count > 0 ? ` (${count})` : ''}
+      </button>
     </div>
   );
 }
 
-function Reviews({ productId }: { productId: string }) {
+function QnA({ productId, sellerName }: { productId: string; sellerName: string }) {
+  const { user } = useAuth();
+  const [questions, setQuestions] = useState(() => listQuestions(productId));
+  const [body, setBody] = useState('');
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    setQuestions(listQuestions(productId));
+    setSent(false);
+    setBody('');
+  }, [productId]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !body.trim()) return;
+    askQuestion(productId, user.fullName, body);
+    setQuestions(listQuestions(productId));
+    setBody('');
+    setSent(true);
+  };
+
+  return (
+    <section className="mt-16 md:mt-24 border-t border-line pt-12">
+      <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">
+        Perguntas e respostas {questions.length > 0 && <span className="text-fog font-sans text-lg">({questions.length})</span>}
+      </h2>
+
+      {user ? (
+        <form onSubmit={submit} className="mb-8 flex min-w-0 flex-col sm:flex-row gap-3">
+          <input
+            value={body}
+            onChange={(e) => { setBody(e.target.value); setSent(false); }}
+            placeholder={`Pergunte algo para ${sellerName}…`}
+            aria-label="Sua pergunta"
+            className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors"
+          />
+          <button type="submit" disabled={!body.trim()} className="shrink-0 rounded-full bg-volt px-6 py-3 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-50">
+            Perguntar
+          </button>
+        </form>
+      ) : (
+        <p className="mb-8 text-sm text-fog">
+          <Link to="/entrar" className="text-volt hover:underline">Entre</Link> para perguntar ao vendedor.
+        </p>
+      )}
+      {sent && <p className="-mt-4 mb-8 text-xs text-volt">Pergunta enviada — o vendedor responde por aqui.</p>}
+
+      {questions.length === 0 ? (
+        <p className="text-sm text-fog">Ninguém perguntou ainda. Quebre o gelo.</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {questions.map((q) => (
+            <div key={q.id} className="rounded-xl2 border border-line bg-surface p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-mist"><span className="text-fog">P:</span> {q.body}</p>
+                <span className="shrink-0 font-mono text-[11px] text-fog">{new Date(q.createdAt).toLocaleDateString('pt-BR')}</span>
+              </div>
+              <p className="mt-1 text-xs text-fog">{q.authorName}</p>
+              {q.answer ? (
+                <div className="mt-3 rounded-lg border border-line bg-ink/40 p-3">
+                  <p className="text-sm text-fog leading-relaxed"><span className="text-volt">R:</span> {q.answer.body}</p>
+                  <p className="mt-1 font-mono text-[10px] text-fog">{sellerName} · {new Date(q.answer.at).toLocaleDateString('pt-BR')}</p>
+                </div>
+              ) : (
+                <p className="mt-3 font-mono text-[11px] text-fog">aguardando resposta do vendedor…</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Reviews({ productId, sellerName }: { productId: string; sellerName: string }) {
   const { user } = useAuth();
   const { data: reviews, loading } = useAsync(() => fetchReviews(productId), [productId]);
   const [localReviews, setLocalReviews] = useState<Review[]>([]);
@@ -164,7 +258,7 @@ function Reviews({ productId }: { productId: string }) {
 
       {!loading && all.length > 0 && (
         <div className="grid md:grid-cols-2 gap-4">
-          {all.map((r) => <ReviewCard key={r.id} review={r} />)}
+          {all.map((r) => <ReviewCard key={r.id} review={r} sellerName={sellerName} />)}
         </div>
       )}
     </section>
@@ -468,7 +562,8 @@ export default function Product() {
           </Reveal>
         </section>
 
-        <Reviews productId={product.id} />
+        <QnA productId={product.id} sellerName={product.seller.name} />
+        <Reviews productId={product.id} sellerName={product.seller.name} />
 
         {related && related.length > 0 && (
           <section className="mt-16 md:mt-24">

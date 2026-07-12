@@ -1,5 +1,6 @@
-import type { Review } from './types';
+import type { Review, SellerReply } from './types';
 import { listOrders } from './orders';
+import { PRODUCTS } from './catalog';
 
 /* ---------------------------------------------------------------------------
    Avaliações — seed de demonstração + adições do usuário em localStorage.
@@ -52,11 +53,66 @@ function writeLocal(reviews: Review[]): void {
   localStorage.setItem(KEY, JSON.stringify(reviews));
 }
 
+/* ---- Votos de "útil" (por dispositivo) e resposta do vendedor ----
+   Ficam em mapas separados por id da review, para valerem também nas do SEED.
+   No Supabase viram review_votes (unique review_id+profile_id) e coluna
+   seller_reply. */
+
+const VOTES_KEY = 'romper.reviewVotes.v1';     // ids votados NESTE dispositivo
+const COUNTS_KEY = 'romper.reviewCounts.v1';   // agregado por review
+const REPLIES_KEY = 'romper.reviewReplies.v1'; // resposta do vendedor por review
+
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function hasVotedHelpful(reviewId: string): boolean {
+  return readJson<string[]>(VOTES_KEY, []).includes(reviewId);
+}
+
+/** Alterna o voto de "útil" deste dispositivo. Retorna o novo total. */
+export function toggleHelpful(reviewId: string): number {
+  const voted = readJson<string[]>(VOTES_KEY, []);
+  const counts = readJson<Record<string, number>>(COUNTS_KEY, {});
+  const has = voted.includes(reviewId);
+  counts[reviewId] = Math.max(0, (counts[reviewId] ?? 0) + (has ? -1 : 1));
+  localStorage.setItem(VOTES_KEY, JSON.stringify(has ? voted.filter((id) => id !== reviewId) : [...voted, reviewId]));
+  localStorage.setItem(COUNTS_KEY, JSON.stringify(counts));
+  return counts[reviewId];
+}
+
+export function addSellerReply(reviewId: string, body: string): void {
+  const replies = readJson<Record<string, SellerReply>>(REPLIES_KEY, {});
+  replies[reviewId] = { body: body.trim(), at: new Date().toISOString() };
+  localStorage.setItem(REPLIES_KEY, JSON.stringify(replies));
+}
+
+function decorate(r: Review): Review {
+  const counts = readJson<Record<string, number>>(COUNTS_KEY, {});
+  const replies = readJson<Record<string, SellerReply>>(REPLIES_KEY, {});
+  return { ...r, helpfulCount: counts[r.id] ?? 0, sellerReply: replies[r.id] };
+}
+
 export function getReviews(productId: string): Review[] {
   const all = [...SEED, ...readLocal()];
   return all
     .filter((r) => r.productId === productId)
+    .map(decorate)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/** Avaliações (sem resposta primeiro) dos produtos de uma loja do catálogo. */
+export function listReviewsForSeller(storeSlug: string): Array<Review & { productTitle: string }> {
+  const mine = new Map(PRODUCTS.filter((p) => p.seller.slug === storeSlug).map((p) => [p.id, p.title]));
+  return [...SEED, ...readLocal()]
+    .filter((r) => mine.has(r.productId))
+    .map((r) => ({ ...decorate(r), productTitle: mine.get(r.productId)! }))
+    .sort((a, b) => Number(!!a.sellerReply) - Number(!!b.sellerReply) || b.createdAt.localeCompare(a.createdAt));
 }
 
 export function hasReviewed(productId: string, buyerId: string): boolean {

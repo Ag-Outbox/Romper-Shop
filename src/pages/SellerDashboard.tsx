@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import CouponManager from '../components/CouponManager';
+import SellerEngagement from '../components/SellerEngagement';
 import Reveal from '../components/Reveal';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
@@ -433,6 +434,7 @@ export default function SellerDashboard() {
         </div>
       </section>
 
+      {user?.storeSlug && <SellerEngagement storeSlug={user.storeSlug} />}
       {user?.storeSlug && <CouponManager scope="store" storeSlug={user.storeSlug} />}
     </DashboardShell>
   );
