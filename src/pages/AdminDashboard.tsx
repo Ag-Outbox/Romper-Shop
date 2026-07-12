@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
+import CouponManager from '../components/CouponManager';
 import Reveal from '../components/Reveal';
 import { usePageMeta } from '../lib/usePageMeta';
 import { PRODUCTS, CATEGORIES } from '../lib/catalog';
@@ -358,6 +359,8 @@ export default function AdminDashboard() {
           </table>
         </div>
       </section>
+
+      <CouponManager scope="platform" />
     </DashboardShell>
   );
 }

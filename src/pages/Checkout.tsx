@@ -7,6 +7,7 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
 import { maskCep, isValidCep, lookupCep, codEligibility, UFS } from '../lib/cep';
 import { saveOrder, newOrderId } from '../lib/orders';
+import { validateCoupon, redeemCoupon } from '../lib/coupons';
 import { recordCommissionsForOrder } from '../lib/affiliates';
 import { useAuth } from '../lib/auth';
 import type { Address, CartItem, Order, OrderSubOrder, SubOrderStatus } from '../lib/types';
@@ -68,10 +69,33 @@ export default function Checkout() {
   const [onlineMethod, setOnlineMethod] = useState<OnlineMethod>('pix');
   const [cepLoading, setCepLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCode, setAppliedCode] = useState('');
+  const [couponError, setCouponError] = useState('');
 
   const groups = useMemo(() => groupBySeller(items), [items]);
-  const shippingCents = subtotalCents > 0 && subtotalCents < 19900 ? 1490 : 0;
-  const totalCents = subtotalCents + shippingCents;
+  const baseShippingCents = subtotalCents > 0 && subtotalCents < 19900 ? 1490 : 0;
+
+  // Revalida a cada mudança na sacola — se o cupom deixar de valer
+  // (ex.: caiu abaixo do mínimo), o desconto some sozinho.
+  const couponRes = useMemo(
+    () => (appliedCode ? validateCoupon(appliedCode, { items, subtotalCents }) : null),
+    [appliedCode, items, subtotalCents],
+  );
+  const discountCents = couponRes?.ok ? couponRes.discountCents : 0;
+  const shippingCents = couponRes?.ok && couponRes.freeShipping ? 0 : baseShippingCents;
+  const totalCents = subtotalCents - discountCents + shippingCents;
+
+  const applyCoupon = () => {
+    const res = validateCoupon(couponInput, { items, subtotalCents });
+    if (res.ok) {
+      setAppliedCode(res.coupon!.code);
+      setCouponError('');
+      setCouponInput('');
+    } else {
+      setCouponError(res.reason ?? 'Cupom inválido.');
+    }
+  };
 
   const cod = codEligibility({ items, totalCents, uf: address.uf });
 
@@ -128,10 +152,13 @@ export default function Checkout() {
       subOrders,
       subtotalCents,
       shippingCents,
+      couponCode: couponRes?.ok ? appliedCode : undefined,
+      discountCents: discountCents > 0 ? discountCents : undefined,
       totalCents,
       statusLabel: isCod ? 'Pedido confirmado — pague na entrega' : 'Pagamento aprovado',
     };
     saveOrder(order);
+    if (couponRes?.ok) redeemCoupon(appliedCode);
     recordCommissionsForOrder(order, user?.id);
     clear();
     // Simula o retorno do provedor de pagamento antes de confirmar.
@@ -289,8 +316,50 @@ export default function Checkout() {
           {/* RESUMO */}
           <aside className="rounded-xl2 border border-line bg-surface p-6 lg:sticky lg:top-24">
             <h2 className="font-display text-2xl font-semibold">Resumo</h2>
+
+            {/* CUPOM */}
+            <div className="mt-5">
+              {couponRes?.ok ? (
+                <div className="flex items-center justify-between rounded-lg border border-volt/40 bg-volt/10 px-3 py-2.5 text-sm">
+                  <span className="text-volt">
+                    Cupom <strong className="font-mono">{appliedCode}</strong>
+                    {couponRes.freeShipping ? ' — frete grátis' : ''}
+                  </span>
+                  <button onClick={() => setAppliedCode('')} className="text-xs text-fog hover:text-ember transition-colors">
+                    remover
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); applyCoupon(); }}
+                  className="flex min-w-0 gap-2"
+                >
+                  <input
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                    placeholder="Cupom de desconto"
+                    aria-label="Cupom de desconto"
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2.5 font-mono text-sm uppercase text-mist outline-none placeholder:font-sans placeholder:normal-case placeholder:text-fog/60 focus:border-volt transition-colors"
+                  />
+                  <button type="submit" className="shrink-0 rounded-lg border border-line px-4 text-sm hover:border-volt hover:text-volt transition-colors">
+                    Aplicar
+                  </button>
+                </form>
+              )}
+              {couponError && <p className="mt-2 text-xs text-ember">{couponError}</p>}
+              {appliedCode && couponRes && !couponRes.ok && (
+                <p className="mt-2 text-xs text-ember">Cupom {appliedCode} deixou de valer: {couponRes.reason}</p>
+              )}
+            </div>
+
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between"><dt className="text-fog">Subtotal</dt><dd className="text-mist">{formatBRL(subtotalCents)}</dd></div>
+              {discountCents > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-fog">Desconto ({appliedCode})</dt>
+                  <dd className="text-volt">−{formatBRL(discountCents)}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-fog">Frete</dt>
                 <dd className={shippingCents === 0 ? 'text-volt' : 'text-mist'}>{shippingCents === 0 ? 'Grátis' : formatBRL(shippingCents)}</dd>

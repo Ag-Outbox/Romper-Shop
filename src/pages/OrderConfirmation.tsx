@@ -120,6 +120,12 @@ export default function OrderConfirmation() {
         {/* totais */}
         <dl className="mt-6 rounded-xl2 border border-line bg-surface p-6 space-y-3 text-sm">
           <div className="flex justify-between"><dt className="text-fog">Subtotal</dt><dd className="text-mist">{formatBRL(order.subtotalCents)}</dd></div>
+          {order.discountCents ? (
+            <div className="flex justify-between">
+              <dt className="text-fog">Desconto{order.couponCode ? ` (${order.couponCode})` : ''}</dt>
+              <dd className="text-volt">−{formatBRL(order.discountCents)}</dd>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <dt className="text-fog">Frete</dt>
             <dd className={order.shippingCents === 0 ? 'text-volt' : 'text-mist'}>{order.shippingCents === 0 ? 'Grátis' : formatBRL(order.shippingCents)}</dd>

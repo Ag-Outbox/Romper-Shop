@@ -30,7 +30,7 @@ stub em `recommendationEngine.ts`).
 - [x] **A1** Filtros na categoria/busca (preço, nota mínima, COD, desconto) — M
 - [x] **A2** Paginação / carregar mais — S
 - [ ] **A3** Ofertas relâmpago com contador regressivo — M
-- [ ] **A4** Cupons (loja e plataforma) — M/L
+- [x] **A4** Cupons (loja e plataforma) — M/L
 - [ ] **A5** Vistos recentemente — S
 - [ ] **A6** Perguntas & Respostas no produto — M
 - [ ] **A7** Avaliações 2.0 (fotos, útil, resposta do vendedor) — M *(foto real precisa de Storage)*

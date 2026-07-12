@@ -112,8 +112,30 @@ export interface Order {
   subOrders: OrderSubOrder[];
   subtotalCents: number;
   shippingCents: number;
+  couponCode?: string;
+  discountCents?: number;
   totalCents: number;
   statusLabel: string;
+}
+
+/* ---- Cupons (plataforma ou loja) ---- */
+
+export type CouponKind = 'percent' | 'fixed' | 'free_shipping';
+
+export interface Coupon {
+  id: string;
+  code: string;               // sempre maiúsculo, único
+  kind: CouponKind;
+  percent?: number;           // kind=percent (1–90)
+  amountCents?: number;       // kind=fixed
+  scope: 'platform' | 'store';
+  storeSlug?: string;         // scope=store: desconta só os itens dessa loja
+  minSubtotalCents?: number;
+  expiresAt?: string;         // ISO; ausente = sem validade
+  maxUses?: number;           // ausente = ilimitado
+  uses: number;
+  active: boolean;
+  createdAt: string;
 }
 
 /* ---- Avaliações (só com compra verificada, 1 por comprador/produto) ---- */
