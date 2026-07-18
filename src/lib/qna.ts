@@ -1,4 +1,5 @@
 import { PRODUCTS } from './catalog';
+import { pushNotification } from './notificationsStore';
 import type { Question } from './types';
 
 /* Perguntas & Respostas do produto (localStorage) até a tabela `questions`
@@ -71,21 +72,46 @@ export function askQuestion(productId: string, authorName: string, body: string)
     createdAt: new Date().toISOString(),
   };
   writeLocal([...readLocal(), q]);
+
+  // Avisa o vendedor dono do produto que há uma nova pergunta.
+  const product = PRODUCTS.find((p) => p.id === productId);
+  if (product) {
+    pushNotification({
+      audienceRole: 'seller',
+      storeSlug: product.seller.slug,
+      kind: 'question',
+      title: 'Nova pergunta no seu produto',
+      body: product.title,
+      href: '/vendedor',
+    });
+  }
   return q;
 }
 
 export function answerQuestion(questionId: string, body: string): void {
   const answer = { body: body.trim(), at: new Date().toISOString() };
+  const all = merged();
+  const question = all.find((x) => x.id === questionId);
   const locals = readLocal();
   const q = locals.find((x) => x.id === questionId);
   if (q) {
     q.answer = answer;
     writeLocal(locals);
+  } else if (SEED.some((s) => s.id === questionId)) {
+    localStorage.setItem(ANSWERS_KEY, JSON.stringify({ ...readSeedAnswers(), [questionId]: answer }));
+  } else {
     return;
   }
-  if (SEED.some((s) => s.id === questionId)) {
-    localStorage.setItem(ANSWERS_KEY, JSON.stringify({ ...readSeedAnswers(), [questionId]: answer }));
-  }
+
+  // Avisa o comprador que sua pergunta foi respondida.
+  const product = question && PRODUCTS.find((p) => p.id === question.productId);
+  pushNotification({
+    audienceRole: 'buyer',
+    kind: 'question',
+    title: 'Sua pergunta foi respondida',
+    body: product?.title,
+    href: product ? `/produto/${product.slug}` : undefined,
+  });
 }
 
 /** Perguntas (não respondidas primeiro) dos produtos de uma loja do catálogo. */

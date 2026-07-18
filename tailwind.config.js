@@ -4,15 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ---- Romper Shop design tokens ----
-        ink: '#0A0A0B',        // fundo base (quase preto, leve azulado)
-        surface: '#141416',    // cards / seções
-        line: '#26262A',       // hairlines / bordas
-        fog: '#8A8A94',        // texto secundário
-        mist: '#E8E8EC',       // texto primário sobre escuro
-        volt: '#CCFF00',       // COR DE ASSINATURA — verde-limão elétrico
-        'volt-dim': '#A8D400', // volt para hovers/estados
-        ember: '#FF5A3C',      // acento secundário (promoções/COD)
+        // ---- Romper Shop design tokens (tema claro / página de vendas) ----
+        // Os NOMES são papéis, não cores: ink = fundo base, mist = texto
+        // primário. Trocar o tema inteiro = trocar só estes valores.
+        ink: '#F4F3EE',        // fundo base (marfim quente — claro sem estourar)
+        surface: '#FFFFFF',    // cards / seções (branco puro salta do marfim)
+        line: '#E0DFD6',       // hairlines / bordas (quentes)
+        fog: '#6E6D64',        // texto secundário
+        mist: '#161613',       // texto primário sobre claro (também fundo invertido)
+        volt: '#5C940B',       // COR DE ASSINATURA — verde-limão legível no marfim
+        'volt-dim': '#47730A', // volt para hovers/estados
+        ember: '#E23A20',      // acento secundário (promoções/COD)
       },
       fontFamily: {
         // display marcante + corpo legível + mono utilitário.
@@ -26,8 +28,8 @@ export default {
       },
       borderRadius: { xl2: '1.25rem' },
       boxShadow: {
-        volt: '0 0 50px -12px rgba(204, 255, 0, 0.45)',
-        lift: '0 24px 48px -24px rgba(0, 0, 0, 0.7)',
+        volt: '0 0 40px -10px rgba(92, 148, 11, 0.35)',
+        lift: '0 24px 48px -24px rgba(28, 28, 18, 0.22)',
       },
       transitionTimingFunction: {
         smooth: 'cubic-bezier(0.22, 1, 0.36, 1)',

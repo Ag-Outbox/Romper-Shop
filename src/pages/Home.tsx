@@ -1,15 +1,19 @@
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '../components/Reveal';
 import SiteFooter from '../components/SiteFooter';
 import ProductCard from '../components/ProductCard';
 import Countdown from '../components/Countdown';
+import NavTabs from '../components/NavTabs';
 import RecentlyViewed from '../components/RecentlyViewed';
 import { getFlashSale } from '../lib/flashSale';
 import { useSmoothScroll } from '../lib/useSmoothScroll';
 import { usePageMeta } from '../lib/usePageMeta';
+import { useAsync } from '../lib/useAsync';
 import { getRanking } from '../lib/catalog';
+import { fetchAllProducts, fetchCategories, searchProducts, type ProductSort } from '../lib/api';
+import type { Product } from '../lib/types';
 import { useAuth, type Role } from '../lib/auth';
 import { pendingActionCount } from '../lib/notifications';
 
@@ -17,10 +21,10 @@ const ACCOUNT_PATH: Record<Role, string> = { buyer: '/conta', seller: '/vendedor
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Home
-   Direção: dark editorial + verde-limão elétrico (volt) como cor de assinatura.
-   Hero = tese ("um lugar, tudo"). Motion deliberado: reveal no scroll,
-   marquee contínuo, parallax sutil no título. Dados são MOCK até ligar o
-   Supabase (products / product_scores).
+   Direção: vitrine clara (fundo branco) + verde-limão (volt) como assinatura.
+   Hero = tese ("um lugar, tudo"), mais curto que a viewport para a Oferta
+   Relâmpago já aparecer dobrando a tela — convite ao scroll, como na Shopee.
+   Motion deliberado: reveal no scroll, marquee contínuo, parallax no título.
 --------------------------------------------------------------------------- */
 
 const CATEGORIES = [
@@ -51,9 +55,10 @@ function Hero() {
   };
 
   return (
-    <section ref={ref} className="relative min-h-[100svh] flex flex-col justify-between px-5 pt-6 pb-10 md:px-10 overflow-hidden">
-      {/* atmosfera: glow volt + monograma gigante vazado */}
-      <div aria-hidden className="pointer-events-none absolute -top-1/4 -right-1/4 h-[52rem] w-[52rem] rounded-full bg-volt/[0.05] blur-3xl" />
+    <section ref={ref} className="relative min-h-[82svh] md:min-h-[88svh] flex flex-col justify-between px-5 pt-6 pb-10 md:px-10 overflow-hidden">
+      {/* atmosfera: glows volt + monograma gigante vazado */}
+      <div aria-hidden className="pointer-events-none absolute -top-1/4 -right-1/4 h-[52rem] w-[52rem] rounded-full bg-volt/[0.09] blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-1/3 -left-1/4 h-[40rem] w-[40rem] rounded-full bg-volt/[0.05] blur-3xl" />
       <div
         aria-hidden
         className="pointer-events-none select-none absolute -right-16 md:right-0 top-1/2 -translate-y-1/2 font-display font-semibold leading-none text-outline text-[22rem] md:text-[36rem]"
@@ -61,27 +66,25 @@ function Hero() {
         R.
       </div>
 
-      {/* topbar */}
-      <nav className="flex items-center justify-between">
-        <span className="font-display text-xl font-semibold tracking-tight">Romper<span className="text-volt">.</span></span>
-        <div className="hidden md:flex items-center gap-8 text-sm text-fog">
-          <a className="hover:text-mist transition-colors" href="#categorias">Categorias</a>
-          <a className="hover:text-mist transition-colors" href="#algoritmo">Em alta</a>
-          <a className="hover:text-mist transition-colors" href="#cod">Pague na entrega</a>
-          <a className="hover:text-mist transition-colors" href="#vender">Vender</a>
-        </div>
-        <Link
-          to={user ? ACCOUNT_PATH[user.role] : '/entrar'}
-          className="relative rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
-        >
-          {user ? user.fullName.split(' ')[0] : 'Entrar'}
-          {pendingActionCount(user) > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center rounded-full bg-ember px-1.5 min-w-5 h-5 text-xs font-semibold text-ink">
-              {pendingActionCount(user)}
-            </span>
-          )}
-        </Link>
-      </nav>
+      {/* topbar + abas principais */}
+      <div className="relative">
+        <nav className="flex items-center justify-between gap-4">
+          <span className="font-display text-xl font-semibold tracking-tight">Romper<span className="text-volt">.</span></span>
+          <NavTabs className="hidden md:block" />
+          <Link
+            to={user ? ACCOUNT_PATH[user.role] : '/entrar'}
+            className="relative shrink-0 rounded-full border border-line px-4 py-2 text-sm hover:border-volt hover:text-volt transition-colors"
+          >
+            {user ? user.fullName.split(' ')[0] : 'Entrar'}
+            {pendingActionCount(user) > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-ember px-1.5 min-w-5 h-5 text-xs font-semibold text-ink">
+                {pendingActionCount(user)}
+              </span>
+            )}
+          </Link>
+        </nav>
+        <NavTabs className="md:hidden mt-3 -mx-5 px-5 border-b border-line" />
+      </div>
 
       {/* hero thesis */}
       <motion.div style={{ y, opacity: op }} className="relative flex-1 flex flex-col justify-center">
@@ -127,14 +130,16 @@ function Hero() {
   );
 }
 
+/* Faixa invertida (escura) — momento de contraste que segura a identidade
+   editorial no tema claro. */
 function Marquee() {
   const items = [...MARQUEE, ...MARQUEE];
   return (
-    <div className="border-y border-line overflow-hidden py-5 select-none">
+    <div className="bg-mist overflow-hidden py-6 select-none">
       <div className="marquee-track flex whitespace-nowrap gap-8">
         {items.map((w, i) => (
           <span key={i} className="font-display text-2xl md:text-4xl font-semibold flex items-center gap-8">
-            <span className={i % 2 === 0 ? 'text-mist' : 'text-outline'}>{w}</span>
+            <span className={i % 2 === 0 ? 'text-ink' : 'text-outline-light'}>{w}</span>
             <span className="text-volt text-lg">✦</span>
           </span>
         ))}
@@ -180,11 +185,13 @@ function CategoryGrid() {
   );
 }
 
+/* Logo abaixo do hero — o topo desta seção já aparece na primeira dobra,
+   puxando o scroll (padrão Shopee de oferta relâmpago na entrada). */
 function FlashSale() {
   const { endsAt, products } = getFlashSale();
   if (products.length === 0) return null;
   return (
-    <section id="relampago" className="px-5 md:px-10 py-20 md:py-28 border-t border-line">
+    <section id="relampago" className="px-5 md:px-10 pt-10 pb-16 md:pt-12 md:pb-24 border-t border-line">
       <Reveal>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -193,19 +200,170 @@ function FlashSale() {
               Preço derretendo. <span className="text-fog">Por pouco tempo.</span>
             </h2>
           </div>
-          <div className="rounded-xl2 border border-ember/40 bg-ember/10 px-5 py-3">
-            <p className="font-mono text-[10px] text-fog tracking-widest">TERMINA EM</p>
-            <Countdown endsAt={endsAt} className="text-2xl text-ember" />
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl2 border border-ember/40 bg-ember/10 px-5 py-3">
+              <p className="font-mono text-[10px] text-fog tracking-widest">TERMINA EM</p>
+              <Countdown endsAt={endsAt} className="text-2xl text-ember" />
+            </div>
+            <Link to="/promocoes" className="text-sm text-fog hover:text-volt transition-colors">
+              ver todas →
+            </Link>
           </div>
         </div>
       </Reveal>
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
         {products.map((p, i) => (
           <Reveal key={p.id} delay={Math.min(i, 6) * 0.05} y={16}>
             <ProductCard product={p} />
           </Reveal>
         ))}
       </div>
+    </section>
+  );
+}
+
+/* Vitrine "recomendados": catálogo inteiro com chips de categoria, busca
+   rápida e ordenação — o usuário filtra sem sair da Home. */
+function Recommended() {
+  const [cat, setCat] = useState('');
+  const [term, setTerm] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [sort, setSort] = useState<ProductSort>('relevance');
+  const [items, setItems] = useState<Product[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Debounce da busca para não consultar a cada tecla
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(term.trim()), 350);
+    return () => clearTimeout(t);
+  }, [term]);
+
+  const { data: categories } = useAsync(fetchCategories, []);
+  const fetchPage = (p: number) =>
+    debounced
+      ? searchProducts(debounced, { sort, page: p, pageSize: 8 })
+      : fetchAllProducts({ categorySlug: cat || undefined, sort, page: p, pageSize: 8 });
+  const { data: firstPage, loading } = useAsync(
+    () => fetchPage(1),
+    [cat, debounced, sort],
+  );
+
+  useEffect(() => {
+    if (!firstPage) return;
+    setItems(firstPage.items);
+    setHasMore(firstPage.hasMore);
+    setPage(1);
+  }, [firstPage]);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const next = await fetchPage(page + 1);
+      setItems((prev) => [...prev, ...next.items]);
+      setHasMore(next.hasMore);
+      setPage(page + 1);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const chipCls = (active: boolean) =>
+    `shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
+      active ? 'border-volt bg-volt text-ink font-semibold' : 'border-line text-fog hover:border-volt hover:text-volt'
+    }`;
+
+  return (
+    <section id="recomendados" className="px-5 md:px-10 py-20 md:py-28 border-t border-line">
+      <Reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+          <div>
+            <p className="font-mono text-xs text-volt tracking-widest mb-4">PARA VOCÊ</p>
+            <h2 className="font-display text-4xl md:text-6xl font-semibold">Recomendados</h2>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-fog">Ordenar:</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as ProductSort)}
+              className="rounded-lg border border-line bg-ink px-3 py-2 text-sm text-mist outline-none focus:border-volt transition-colors"
+            >
+              <option value="relevance">Relevância</option>
+              <option value="price_asc">Menor preço</option>
+              <option value="price_desc">Maior preço</option>
+              <option value="best_selling">Mais vendidos</option>
+              <option value="top_rated">Melhor avaliação</option>
+            </select>
+          </label>
+        </div>
+      </Reveal>
+
+      {/* chips de categoria + busca rápida */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto">
+          <button onClick={() => setCat('')} className={chipCls(cat === '' && !debounced)}>Tudo</button>
+          {(categories ?? []).map((c) => (
+            <button key={c.slug} onClick={() => { setCat(c.slug); setTerm(''); }} className={chipCls(cat === c.slug && !debounced)}>
+              {c.name}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-line bg-ink px-4 py-2 md:ml-auto md:w-64 focus-within:border-volt transition-colors">
+          <span className="text-fog text-sm">⌕</span>
+          <input
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Buscar nos recomendados…"
+            aria-label="Buscar produtos recomendados"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-fog"
+          />
+        </div>
+      </div>
+
+      {loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-xl2 border border-line bg-surface overflow-hidden">
+              <div className="aspect-square animate-pulse bg-line/40" />
+              <div className="p-4 space-y-2">
+                <div className="h-3 w-4/5 animate-pulse rounded bg-line/40" />
+                <div className="h-3 w-2/5 animate-pulse rounded bg-line/40" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && items.length === 0 && (
+        <div className="rounded-xl2 border border-line bg-surface p-12 text-center">
+          <p className="font-display text-2xl">Nada por aqui</p>
+          <p className="mt-2 text-fog">Nenhum produto encontrado — tente outra categoria ou termo.</p>
+        </div>
+      )}
+
+      {!loading && items.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {items.map((p, i) => (
+              <Reveal key={p.id} delay={Math.min(i, 8) * 0.04} y={16}>
+                <ProductCard product={p} />
+              </Reveal>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="rounded-full border border-line px-7 py-3 text-sm hover:border-volt hover:text-volt transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -272,7 +430,7 @@ function CODBand() {
           Cash on Delivery integrado: peça agora e pague só quando o produto chegar na sua
           porta, onde a modalidade estiver disponível.
         </p>
-        <button className="mt-8 rounded-full bg-ink px-7 py-3 text-sm font-semibold text-volt transition-all duration-300 ease-smooth hover:bg-black hover:-translate-y-0.5">
+        <button className="mt-8 rounded-full bg-mist px-7 py-3 text-sm font-semibold text-ink transition-all duration-300 ease-smooth hover:bg-black hover:-translate-y-0.5">
           Como funciona
         </button>
       </Reveal>
@@ -317,9 +475,10 @@ export default function Home() {
   return (
     <main>
       <Hero />
+      <FlashSale />
       <Marquee />
       <CategoryGrid />
-      <FlashSale />
+      <Recommended />
       <AlgorithmTeaser />
       <CODBand />
       <RecentlyViewed />

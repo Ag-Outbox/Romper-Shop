@@ -1,4 +1,5 @@
 import type { CartItem, Order, SubOrderStatus } from './types';
+import { pushNotification } from './notificationsStore';
 
 /* Pedidos persistidos no cliente (localStorage) até a tabela `orders` no
    Supabase. A modelagem já é a final: um Order (pai) com N sub_orders. */
@@ -85,6 +86,17 @@ export function updateSubOrderStatus(orderId: string, sellerSlug: string, status
   sub.status = status;
   sub.history = [...(sub.history ?? []), { status, at: new Date().toISOString() }];
   writeAll(all);
+
+  // Avisa o comprador quando o pedido anda (enviado/entregue).
+  if (status === 'shipped' || status === 'delivered') {
+    pushNotification({
+      audienceRole: 'buyer',
+      kind: 'order',
+      title: status === 'shipped' ? 'Seu pedido foi enviado' : 'Seu pedido foi entregue',
+      body: `${sub.sellerName} · pedido ${orderId}`,
+      href: `/pedido/${orderId}`,
+    });
+  }
 }
 
 /** Nº de pedido curto e legível (ex.: RS-LQ9F3K). */

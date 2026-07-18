@@ -9,6 +9,7 @@ import { maskCep, isValidCep, lookupCep, codEligibility, UFS } from '../lib/cep'
 import { saveOrder, newOrderId } from '../lib/orders';
 import { listAddresses, saveAddress } from '../lib/addresses';
 import { validateCoupon, redeemCoupon } from '../lib/coupons';
+import { pushNotification } from '../lib/notificationsStore';
 import { recordCommissionsForOrder } from '../lib/affiliates';
 import { useAuth } from '../lib/auth';
 import type { Address, CartItem, Order, OrderSubOrder, SubOrderStatus } from '../lib/types';
@@ -194,6 +195,17 @@ export default function Checkout() {
     saveOrder(order);
     if (couponRes?.ok) redeemCoupon(appliedCode);
     recordCommissionsForOrder(order, user?.id);
+    // Avisa cada vendedor do sub-pedido que caiu na sua fila.
+    for (const g of subOrders) {
+      pushNotification({
+        audienceRole: 'seller',
+        storeSlug: g.sellerSlug,
+        kind: 'order',
+        title: 'Novo pedido recebido',
+        body: `${g.items.length} ${g.items.length === 1 ? 'item' : 'itens'} · ${isCod ? 'pague na entrega' : 'pago'}`,
+        href: '/vendedor',
+      });
+    }
     clear();
     // Simula o retorno do provedor de pagamento antes de confirmar.
     setTimeout(() => navigate(`/pedido/${order.id}`), 400);
@@ -344,7 +356,7 @@ export default function Checkout() {
                       type="checkbox"
                       checked={saveThis}
                       onChange={(e) => setSaveThis(e.target.checked)}
-                      className="h-4 w-4 accent-[#CCFF00]"
+                      className="h-4 w-4 accent-[#5C940B]"
                     />
                     Salvar este endereço para as próximas compras
                   </label>

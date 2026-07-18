@@ -12,6 +12,9 @@ import Home from './pages/Home';
 /* Code-splitting: cada página vira um chunk próprio; só a Home entra no
    bundle inicial. O fallback é discreto — as páginas têm skeletons próprios. */
 const Category = lazy(() => import('./pages/Category'));
+const Promotions = lazy(() => import('./pages/Promotions'));
+const Trending = lazy(() => import('./pages/Trending'));
+const Help = lazy(() => import('./pages/Help'));
 const Search = lazy(() => import('./pages/Search'));
 const Product = lazy(() => import('./pages/Product'));
 const Store = lazy(() => import('./pages/Store'));
@@ -39,6 +42,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/categoria/:slug" element={<Category />} />
+            <Route path="/promocoes" element={<Promotions />} />
+            <Route path="/em-alta" element={<Trending />} />
+            <Route path="/ajuda" element={<Help />} />
             <Route path="/busca" element={<Search />} />
             <Route path="/produto/:slug" element={<Product />} />
             <Route path="/loja/:slug" element={<Store />} />

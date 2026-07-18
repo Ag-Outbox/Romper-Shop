@@ -1,4 +1,6 @@
 import type { Payout } from './types';
+import { pushNotification } from './notificationsStore';
+import { formatBRL } from './format';
 
 /* ---------------------------------------------------------------------------
    Saques — vendedor ou afiliado, em localStorage (migration 0007: payouts
@@ -34,6 +36,15 @@ function request(ownerType: Payout['ownerType'], ownerId: string, amountCents: n
     requestedAt: new Date().toISOString(),
   };
   writeAll([payout, ...readAll()]);
+
+  // Fila do admin: novo saque para processar.
+  pushNotification({
+    audienceRole: 'admin',
+    kind: 'payout',
+    title: 'Novo saque solicitado',
+    body: `${ownerType === 'seller' ? 'Vendedor' : 'Afiliado'} · ${formatBRL(amountCents)}`,
+    href: '/admin',
+  });
   return payout;
 }
 
@@ -66,6 +77,21 @@ export function listPendingPayouts(): Payout[] {
 }
 
 export function markPayoutPaid(id: string): void {
-  const all = readAll().map((p) => (p.id === id ? { ...p, status: 'paid' as const } : p));
+  const all = readAll();
+  const payout = all.find((p) => p.id === id);
+  if (!payout) return;
+  payout.status = 'paid';
   writeAll(all);
+
+  // Avisa o vendedor que o saque foi pago (afiliado acompanha pelo painel próprio).
+  if (payout.ownerType === 'seller') {
+    pushNotification({
+      audienceRole: 'seller',
+      storeSlug: payout.ownerId,
+      kind: 'payout',
+      title: 'Saque pago',
+      body: `${formatBRL(payout.amountCents)} enviado para sua conta.`,
+      href: '/vendedor',
+    });
+  }
 }

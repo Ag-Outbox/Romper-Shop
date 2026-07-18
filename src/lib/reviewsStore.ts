@@ -1,6 +1,7 @@
 import type { Review, SellerReply } from './types';
 import { listOrders } from './orders';
 import { PRODUCTS } from './catalog';
+import { pushNotification } from './notificationsStore';
 
 /* ---------------------------------------------------------------------------
    Avaliações — seed de demonstração + adições do usuário em localStorage.
@@ -90,6 +91,17 @@ export function addSellerReply(reviewId: string, body: string): void {
   const replies = readJson<Record<string, SellerReply>>(REPLIES_KEY, {});
   replies[reviewId] = { body: body.trim(), at: new Date().toISOString() };
   localStorage.setItem(REPLIES_KEY, JSON.stringify(replies));
+
+  // Avisa o comprador que o vendedor respondeu sua avaliação.
+  const review = [...SEED, ...readLocal()].find((r) => r.id === reviewId);
+  const product = review && PRODUCTS.find((p) => p.id === review.productId);
+  pushNotification({
+    audienceRole: 'buyer',
+    kind: 'review',
+    title: 'O vendedor respondeu sua avaliação',
+    body: product?.title,
+    href: product ? `/produto/${product.slug}` : undefined,
+  });
 }
 
 function decorate(r: Review): Review {

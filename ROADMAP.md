@@ -52,7 +52,7 @@ stub em `recommendationEngine.ts`).
 ## 3. Relacionamento e Comunicação
 
 - [ ] **C1** Chat comprador↔vendedor — L *(tempo real precisa Supabase Realtime)*
-- [ ] **C2** Central de notificações in-app — M
+- [x] **C2** Central de notificações in-app — M
 - [ ] **C3** E-mails transacionais — M *(precisa Supabase + provedor de e-mail)*
 
 ## 4. Mobile-first

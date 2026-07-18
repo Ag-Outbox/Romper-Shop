@@ -153,6 +153,25 @@ export interface Coupon {
   createdAt: string;
 }
 
+/* ---- Notificações in-app (central de notificações) ---- */
+
+/** Papel-alvo da notificação — casa com Role do auth (buyer/seller/admin). */
+export type NotificationAudienceRole = 'buyer' | 'seller' | 'admin';
+
+export type NotificationKind = 'order' | 'question' | 'review' | 'store' | 'payout';
+
+export interface AppNotification {
+  id: string;
+  audienceRole: NotificationAudienceRole;
+  storeSlug?: string;         // quando audienceRole = 'seller'
+  kind: NotificationKind;
+  title: string;
+  body?: string;
+  href?: string;              // rota para onde o clique leva
+  read: boolean;
+  createdAt: string;
+}
+
 /* ---- Avaliações (só com compra verificada, 1 por comprador/produto) ---- */
 
 export interface SellerReply {

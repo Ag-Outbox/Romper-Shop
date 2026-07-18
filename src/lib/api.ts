@@ -31,6 +31,8 @@ export interface ProductFilters {
   minRating?: number;
   codOnly?: boolean;
   discountOnly?: boolean;
+  /** Uma ou mais categorias (checkbox estilo Nike na coluna de filtros). */
+  categorySlugs?: string[];
 }
 
 export interface ProductQueryOptions {
@@ -58,6 +60,7 @@ function matchesFilters(p: Product, f?: ProductFilters): boolean {
   if (f.minRating != null && p.ratingAvg < f.minRating) return false;
   if (f.codOnly && !p.codAvailable) return false;
   if (f.discountOnly && !(p.compareAtCents && p.compareAtCents > p.priceCents)) return false;
+  if (f.categorySlugs && f.categorySlugs.length > 0 && !f.categorySlugs.includes(p.categorySlug)) return false;
   return true;
 }
 
@@ -345,6 +348,7 @@ export async function searchProducts(query: string, options: ProductQueryOptions
     .select(PRODUCT_SELECT, { count: 'exact' })
     .eq('status', 'active')
     .textSearch('search_vector', q, { type: 'websearch', config: 'portuguese' });
+  if (filters?.categorySlugs && filters.categorySlugs.length > 0) sq = sq.in('categories.slug', filters.categorySlugs);
   if (filters?.priceMinCents != null) sq = sq.gte('price_cents', filters.priceMinCents);
   if (filters?.priceMaxCents != null) sq = sq.lte('price_cents', filters.priceMaxCents);
   if (filters?.minRating != null) sq = sq.gte('rating_avg', filters.minRating);
@@ -354,6 +358,60 @@ export async function searchProducts(query: string, options: ProductQueryOptions
   let list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
   if (filters?.discountOnly) list = list.filter((p) => matchesFilters(p, { discountOnly: true }));
   return { items: sortProducts(list, sort), total: count ?? list.length, page, pageSize, hasMore: page * pageSize < (count ?? 0) };
+}
+
+/* ----------------------- Vitrines (Home / Promoções / Em alta) -------------- */
+
+/** Listagem geral do catálogo (todas as categorias, ou uma via `categorySlug`).
+ *  Alimenta os "recomendados" da Home. */
+export async function fetchAllProducts(
+  options: ProductQueryOptions & { categorySlug?: string } = {},
+): Promise<PagedProducts> {
+  const { sort = 'relevance', filters, page = 1, pageSize = DEFAULT_PAGE_SIZE, categorySlug } = options;
+
+  if (!isSupabaseConfigured || !supabase) {
+    const list = sortProducts(
+      MOCK_PRODUCTS.filter(
+        (p) => (!categorySlug || p.categorySlug === categorySlug) && matchesFilters(p, filters),
+      ),
+      sort,
+    );
+    return paginate(list, page, pageSize);
+  }
+
+  let q = supabase
+    .from('products')
+    .select(PRODUCT_SELECT, { count: 'exact' })
+    .eq('status', 'active');
+  if (categorySlug) q = q.eq('categories.slug', categorySlug);
+  if (filters?.categorySlugs && filters.categorySlugs.length > 0) q = q.in('categories.slug', filters.categorySlugs);
+  if (filters?.priceMinCents != null) q = q.gte('price_cents', filters.priceMinCents);
+  if (filters?.priceMaxCents != null) q = q.lte('price_cents', filters.priceMaxCents);
+  if (filters?.minRating != null) q = q.gte('rating_avg', filters.minRating);
+  if (filters?.codOnly) q = q.eq('cod_available', true);
+  const { data, error, count } = await q.range((page - 1) * pageSize, page * pageSize - 1);
+  if (error) throw error;
+  let list = ((data as unknown as ProductRow[]) ?? []).map(rowToProduct);
+  if (filters?.discountOnly) list = list.filter((p) => matchesFilters(p, { discountOnly: true }));
+  return { items: sortProducts(list, sort), total: count ?? list.length, page, pageSize, hasMore: page * pageSize < (count ?? 0) };
+}
+
+/** Promoções: só produtos com desconto real (compareAt > price), maiores
+ *  descontos primeiro. Página /promocoes. */
+export async function fetchDeals(options: ProductQueryOptions = {}): Promise<PagedProducts> {
+  const { page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
+  const all = await fetchAllProducts({ ...options, page: 1, pageSize: 1000, filters: { ...options.filters, discountOnly: true } });
+  const byDiscount = all.items.slice().sort((a, b) => {
+    const da = (a.compareAtCents ?? a.priceCents) - a.priceCents;
+    const db = (b.compareAtCents ?? b.priceCents) - b.priceCents;
+    return db / (b.compareAtCents ?? 1) - da / (a.compareAtCents ?? 1);
+  });
+  return paginate(options.sort && options.sort !== 'relevance' ? sortProducts(byDiscount, options.sort) : byDiscount, page, pageSize);
+}
+
+/** Em alta: mais vendidos do site inteiro, em promoção ou não. Página /em-alta. */
+export async function fetchTrending(options: ProductQueryOptions = {}): Promise<PagedProducts> {
+  return fetchAllProducts({ ...options, sort: 'best_selling' });
 }
 
 /* ----------------------------- Avaliações ----------------------------------- */

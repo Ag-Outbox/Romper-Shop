@@ -27,20 +27,20 @@
   ::selection { @apply bg-volt text-ink; }
   /* Foco visível na navegação por teclado (a11y) */
   :focus-visible {
-    outline: 2px solid #CCFF00;
+    outline: 2px solid #47730A;
     outline-offset: 2px;
   }
   /* Scrollbar sob medida — some com o cinza default do navegador */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: #0A0A0B; }
+  ::-webkit-scrollbar-track { background: #F4F3EE; }
   ::-webkit-scrollbar-thumb {
-    background: #26262A;
+    background: #D2D1C6;
     border-radius: 8px;
-    border: 2px solid #0A0A0B;
+    border: 2px solid #F4F3EE;
   }
-  ::-webkit-scrollbar-thumb:hover { background: #3A3A42; }
+  ::-webkit-scrollbar-thumb:hover { background: #BEBDB1; }
 
-  /* Grão de filme sobre tudo — tira o aspecto "flat digital" do dark puro.
+  /* Grão de papel sobre tudo — tira o aspecto "flat digital" do branco puro.
      Fica acima do conteúdo mas abaixo dos toasts (z-50). */
   body::after {
     content: '';
@@ -48,7 +48,7 @@
     inset: 0;
     z-index: 45;
     pointer-events: none;
-    opacity: 0.05;
+    opacity: 0.03;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/%3E%3C/svg%3E");
   }
 }
@@ -56,19 +56,28 @@
 @layer utilities {
   .text-balance { text-wrap: balance; }
 
+  /* Fileiras que rolam na horizontal (abas, chips) sem barra visível */
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   /* Tipografia vazada — títulos gigantes usados como elemento gráfico */
   .text-outline {
-    -webkit-text-stroke: 1px rgba(138, 138, 148, 0.32);
+    -webkit-text-stroke: 1px rgba(22, 22, 19, 0.20);
     color: transparent;
   }
   .text-outline-volt {
-    -webkit-text-stroke: 1px rgba(204, 255, 0, 0.35);
+    -webkit-text-stroke: 1px rgba(92, 148, 11, 0.45);
+    color: transparent;
+  }
+  /* Variante para as seções invertidas (marquee/rodapé escuros) */
+  .text-outline-light {
+    -webkit-text-stroke: 1px rgba(244, 243, 238, 0.30);
     color: transparent;
   }
 
-  /* Superfície com profundidade — gradiente sutil no lugar do flat #141416 */
+  /* Superfície com profundidade — branco levemente aquecido no rodapé do card */
   .card-grad {
-    background: linear-gradient(160deg, #18181b 0%, #131315 55%, #0e0e10 100%);
+    background: linear-gradient(160deg, #ffffff 0%, #fdfdfa 55%, #f6f5ee 100%);
   }
 
   .marquee-track { animation: marquee 28s linear infinite; }

@@ -1,4 +1,5 @@
 import type { SellerAccount } from './types';
+import { pushNotification } from './notificationsStore';
 
 /* ---------------------------------------------------------------------------
    Registro de vendedores auto-cadastrados (via /vender), em localStorage.
@@ -47,6 +48,15 @@ export function registerSeller(input: { slug: string; name: string; ownerId: str
   if (isSlugTaken(input.slug)) throw new Error('Já existe uma loja com este endereço. Escolha outro nome.');
   const account: SellerAccount = { ...input, status: 'pending', createdAt: new Date().toISOString() };
   writeAll([...readAll(), account]);
+
+  // Fila do admin: nova loja aguardando aprovação.
+  pushNotification({
+    audienceRole: 'admin',
+    kind: 'store',
+    title: 'Nova loja aguardando aprovação',
+    body: input.name,
+    href: '/admin',
+  });
   return account;
 }
 
@@ -57,5 +67,15 @@ export function listPendingSellers(): SellerAccount[] {
 export function approveSeller(slug: string): void {
   const all = readAll().map((s) => (s.slug === slug ? { ...s, status: 'active' as const } : s));
   writeAll(all);
+
+  // Avisa o dono da loja que ela foi aprovada.
+  pushNotification({
+    audienceRole: 'seller',
+    storeSlug: slug,
+    kind: 'store',
+    title: 'Sua loja foi aprovada!',
+    body: 'Já pode publicar produtos e vender.',
+    href: '/vendedor',
+  });
 }
 
