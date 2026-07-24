@@ -7,6 +7,7 @@ import { useAsync } from '../lib/useAsync';
 import { usePageMeta } from '../lib/usePageMeta';
 import { fetchStore } from '../lib/api';
 import { getStoreProfile, BANNER_COLORS } from '../lib/storeProfile';
+import StoreBadges from '../components/StoreBadges';
 import { formatBRL } from '../lib/format';
 
 /* ---------------------------------------------------------------------------
@@ -72,6 +73,9 @@ export default function Store() {
               <p className="font-mono text-xs text-volt tracking-widest mb-1">LOJA</p>
               <h1 className="font-display text-3xl md:text-5xl font-semibold">{seller.name}</h1>
               {profile?.tagline && <p className="mt-1 text-fog">{profile.tagline}</p>}
+              <div className="mt-2">
+                <StoreBadges seller={{ slug, ratingAvg: seller.ratingAvg, ratingCount: seller.ratingCount }} />
+              </div>
             </div>
             <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
               <div>

@@ -34,7 +34,7 @@ stub em `recommendationEngine.ts`).
 - [x] **A5** Vistos recentemente — S
 - [x] **A6** Perguntas & Respostas no produto — M
 - [x] **A7** Avaliações 2.0 (útil, resposta do vendedor) — M *(falta foto: precisa de Storage)*
-- [ ] **A8** Selos de confiança (Loja Oficial, Envio Rápido) — S
+- [x] **A8** Selos de confiança (Loja Oficial, Envio Rápido, Bem avaliada) — S
 - [ ] **A9** Notificar queda de preço / voltou ao estoque — M
 - [ ] **A10** Motor de recomendação real (implementar o stub) — L *(precisa Supabase + cron)*
 

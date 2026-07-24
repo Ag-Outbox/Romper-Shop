@@ -11,6 +11,7 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { fetchProductBySlug, fetchRelated, fetchReviews, submitReview } from '../lib/api';
 import { recordView } from '../lib/recentlyViewed';
 import RecentlyViewed from '../components/RecentlyViewed';
+import StoreBadges from '../components/StoreBadges';
 import { hasVerifiedPurchase, hasReviewed, hasVotedHelpful, toggleHelpful } from '../lib/reviewsStore';
 import { listQuestions, askQuestion } from '../lib/qna';
 import { formatBRL, discountPercent } from '../lib/format';
@@ -529,6 +530,9 @@ export default function Product() {
                   <p className="text-xs text-fog">
                     ★ {product.seller.ratingAvg.toFixed(1)} · {product.seller.ratingCount.toLocaleString('pt-BR')} avaliações
                   </p>
+                  <div className="mt-1.5">
+                    <StoreBadges seller={product.seller} size="xs" />
+                  </div>
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
