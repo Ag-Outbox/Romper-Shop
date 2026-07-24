@@ -4,6 +4,9 @@ import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import CouponManager from '../components/CouponManager';
 import SellerEngagement from '../components/SellerEngagement';
+import SellerOnboarding from '../components/SellerOnboarding';
+import SellerProfileEditor from '../components/SellerProfileEditor';
+import SellerReport from '../components/SellerReport';
 import Reveal from '../components/Reveal';
 import { useAuth } from '../lib/auth';
 import { usePageMeta } from '../lib/usePageMeta';
@@ -183,6 +186,8 @@ export default function SellerDashboard() {
           <Stat label="SALDO DISPONÍVEL" value={formatBRL(kpis.availableCents)} hint={`após comissão (${PLATFORM_COMMISSION_PERCENT.seller}% próprio / ${PLATFORM_COMMISSION_PERCENT.dropship}% dropship)`} />
         </div>
       </Reveal>
+
+      {user?.storeSlug && <SellerOnboarding storeSlug={user.storeSlug} />}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -437,6 +442,8 @@ export default function SellerDashboard() {
         </div>
       </section>
 
+      {user?.storeSlug && <SellerReport storeSlug={user.storeSlug} />}
+      {user?.storeSlug && <SellerProfileEditor storeSlug={user.storeSlug} />}
       {user?.storeSlug && <SellerEngagement storeSlug={user.storeSlug} />}
       {user?.storeSlug && <CouponManager scope="store" storeSlug={user.storeSlug} />}
     </DashboardShell>

@@ -81,9 +81,9 @@ stub em `recommendationEngine.ts`).
 
 ## 7. Foco — Vendedores sem atrito
 
-- [ ] Onboarding guiado com checklist de progresso — M
+- [x] Onboarding guiado com checklist de progresso — M
 - [ ] Editor de produto completo (múltiplas imagens, variações) — L *(upload real precisa Storage)*
-- [ ] Perfil da loja editável (logo, banner, políticas) — M
+- [x] Perfil da loja editável (tagline, banner, políticas) — M *(logo/banner com imagem real precisa de Storage)*
 - [ ] Frete da loja (grátis acima de X, prazo prometido) — M
 - [ ] Relatórios com gráficos (vendas, funil, top produtos) — M
 - [ ] Reputação com critérios visíveis (gera selos do A8) — M

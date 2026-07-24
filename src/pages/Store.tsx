@@ -6,6 +6,8 @@ import ProductCard from '../components/ProductCard';
 import { useAsync } from '../lib/useAsync';
 import { usePageMeta } from '../lib/usePageMeta';
 import { fetchStore } from '../lib/api';
+import { getStoreProfile, BANNER_COLORS } from '../lib/storeProfile';
+import { formatBRL } from '../lib/format';
 
 /* ---------------------------------------------------------------------------
    ROMPER SHOP — Loja pública do vendedor (/loja/:slug)
@@ -53,6 +55,8 @@ export default function Store() {
   }
 
   const { seller, products } = data;
+  const profile = getStoreProfile(slug);
+  const bannerCls = BANNER_COLORS.find((c) => c.id === profile?.bannerColor)?.cls ?? 'bg-surface';
 
   return (
     <>
@@ -60,13 +64,14 @@ export default function Store() {
       <main className="px-5 md:px-10 py-10 pb-24">
         {/* cabeçalho da loja */}
         <Reveal>
-          <div className="flex flex-wrap items-center gap-5 rounded-xl2 border border-line bg-surface p-6 md:p-8">
+          <div className={`flex flex-wrap items-center gap-5 rounded-xl2 border border-line p-6 md:p-8 ${bannerCls}`}>
             <div className="grid h-16 w-16 md:h-20 md:w-20 place-items-center rounded-full bg-volt/15 font-display text-3xl text-volt">
               {seller.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-48">
               <p className="font-mono text-xs text-volt tracking-widest mb-1">LOJA</p>
               <h1 className="font-display text-3xl md:text-5xl font-semibold">{seller.name}</h1>
+              {profile?.tagline && <p className="mt-1 text-fog">{profile.tagline}</p>}
             </div>
             <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
               <div>
@@ -84,6 +89,36 @@ export default function Store() {
             </dl>
           </div>
         </Reveal>
+
+        {/* sobre + políticas (perfil editável do vendedor) */}
+        {profile && (profile.description || profile.returnsPolicy) && (
+          <Reveal delay={0.05}>
+            <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto]">
+              {profile.description && (
+                <div className="rounded-xl2 border border-line bg-surface p-5">
+                  <p className="font-mono text-xs text-fog tracking-widest mb-2">SOBRE A LOJA</p>
+                  <p className="text-sm text-fog leading-relaxed">{profile.description}</p>
+                </div>
+              )}
+              <div className="rounded-xl2 border border-line bg-surface p-5 text-sm">
+                <p className="font-mono text-xs text-fog tracking-widest mb-2">COMO A LOJA TRABALHA</p>
+                <ul className="space-y-1.5 text-fog">
+                  <li>📦 Posta em até <b className="text-mist">{profile.shippingDays}</b> {profile.shippingDays === 1 ? 'dia útil' : 'dias úteis'}</li>
+                  {profile.freeShippingOverCents && (
+                    <li>🚚 Frete grátis acima de <b className="text-mist">{formatBRL(profile.freeShippingOverCents)}</b></li>
+                  )}
+                  {profile.returnsPolicy && <li>↩️ {profile.returnsPolicy}</li>}
+                </ul>
+                <Link
+                  to={`/mensagens?loja=${slug}&nome=${encodeURIComponent(seller.name)}`}
+                  className="mt-3 inline-block rounded-full border border-line px-4 py-2 text-xs hover:border-volt hover:text-volt transition-colors"
+                >
+                  💬 Conversar com a loja
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        )}
 
         {/* produtos */}
         <section className="mt-10">
