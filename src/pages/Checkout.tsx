@@ -10,6 +10,7 @@ import { saveOrder, newOrderId } from '../lib/orders';
 import { listAddresses, saveAddress } from '../lib/addresses';
 import { validateCoupon, redeemCoupon } from '../lib/coupons';
 import { pushNotification } from '../lib/notificationsStore';
+import { cartShipping } from '../lib/shipping';
 import { recordCommissionsForOrder } from '../lib/affiliates';
 import { useAuth } from '../lib/auth';
 import type { Address, CartItem, Order, OrderSubOrder, SubOrderStatus } from '../lib/types';
@@ -92,7 +93,9 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState('');
 
   const groups = useMemo(() => groupBySeller(items), [items]);
-  const baseShippingCents = subtotalCents > 0 && subtotalCents < 19900 ? 1490 : 0;
+  // Frete por regras (B3): por loja, sensível à UF de entrega e ao perfil da loja.
+  const shipping = useMemo(() => cartShipping(items, address.uf), [items, address.uf]);
+  const baseShippingCents = shipping.totalCents;
 
   // Revalida a cada mudança na sacola — se o cupom deixar de valer
   // (ex.: caiu abaixo do mínimo), o desconto some sozinho.
@@ -459,9 +462,28 @@ export default function Checkout() {
                 </div>
               )}
               <div className="flex justify-between">
-                <dt className="text-fog">Frete</dt>
+                <dt className="text-fog">Frete{address.uf ? ` (${address.uf})` : ''}</dt>
                 <dd className={shippingCents === 0 ? 'text-volt' : 'text-mist'}>{shippingCents === 0 ? 'Grátis' : formatBRL(shippingCents)}</dd>
               </div>
+              {shipping.perSeller.length > 0 && (
+                <div className="space-y-1 border-l-2 border-line pl-3">
+                  {shipping.perSeller.map((s) => (
+                    <div key={s.sellerSlug} className="flex justify-between text-xs">
+                      <dt className="text-fog">
+                        {s.sellerName} · {s.etaDays[0]}–{s.etaDays[1]} dias úteis
+                      </dt>
+                      <dd className={s.shippingCents === 0 || (couponRes?.ok && couponRes.freeShipping) ? 'text-volt' : 'text-fog'}>
+                        {couponRes?.ok && couponRes.freeShipping
+                          ? 'grátis (cupom)'
+                          : s.shippingCents === 0
+                            ? s.freeReason === 'store' ? 'grátis (loja)' : 'grátis'
+                            : formatBRL(s.shippingCents)}
+                      </dd>
+                    </div>
+                  ))}
+                  {!address.uf && <p className="text-xs text-fog/70">informe a UF de entrega para o frete exato</p>}
+                </div>
+              )}
               <div className="flex justify-between border-t border-line pt-3 text-base">
                 <dt className="text-mist">Total</dt><dd className="font-display text-xl">{formatBRL(totalCents)}</dd>
               </div>

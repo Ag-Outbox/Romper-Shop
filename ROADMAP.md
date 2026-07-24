@@ -42,7 +42,7 @@ stub em `recommendationEngine.ts`).
 
 - [ ] **B1** Pix real — L *(precisa gateway, ex. Mercado Pago)*
 - [ ] **B2** Cartão parcelado — L *(idem)*
-- [ ] **B3** Frete real por CEP/regras da loja — M
+- [x] **B3** Frete por regras (região da UF + perfil da loja) — M *(cotação real Correios na Fase 2)*
 - [x] **B4** Múltiplos endereços salvos — M
 - [x] **B5** Rastreamento com timeline — M
 - [x] **B6** Cancelamento/devolução (RMA) — L *(reembolso real precisa do gateway, Fase 2)*
