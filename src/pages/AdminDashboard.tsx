@@ -8,7 +8,13 @@ import { PRODUCTS, CATEGORIES } from '../lib/catalog';
 import { formatBRL } from '../lib/format';
 import { availableProviders, importFromProvider } from '../lib/dropship';
 import { MANUAL_IMPORT_EXAMPLE } from '../lib/manualImport';
-import { applyMarkup } from '../services/dropship/DropshipProvider';
+import { priceFromRules } from '../lib/pricingRules';
+import {
+  listAdminCatalog, addAdminCatalogRow, toggleAdminRowStatus, removeAdminRow,
+  type AdminCatalogRow,
+} from '../lib/adminCatalog';
+import BulkImport from '../components/BulkImport';
+import PricingRulesManager from '../components/PricingRulesManager';
 import { PLATFORM_COMMISSION_PERCENT, platformCommissionCents } from '../lib/commission';
 import { listAllAffiliates } from '../lib/affiliates';
 import { listPendingSellers, approveSeller, getSellerAccount } from '../lib/sellers';
@@ -19,17 +25,7 @@ import type { SellerAccount } from '../lib/types';
    administrado (produtos importados de fornecedores diretamente pela
    Romper Shop, sem vendedor no meio — ver lib/dropship.ts). */
 
-interface AdminRow {
-  id: string;
-  title: string;
-  category: string;
-  priceCents: number;
-  stock: number;
-  status: 'active' | 'draft';
-}
-
 const inputCls = 'rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist outline-none placeholder:text-fog/60 focus:border-volt transition-colors';
-const DEFAULT_MARKUP_PERCENT = 35;
 
 export default function AdminDashboard() {
   usePageMeta('Painel admin');
@@ -73,8 +69,9 @@ export default function AdminDashboard() {
 
   // Catálogo administrado pela plataforma (dropship direto, sem vendedor no meio)
   const providers = useMemo(() => availableProviders(), []);
-  const [adminRows, setAdminRows] = useState<AdminRow[]>([]);
+  const [adminRows, setAdminRows] = useState<AdminCatalogRow[]>(() => listAdminCatalog());
   const [showImport, setShowImport] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
   const [importSlug, setImportSlug] = useState(providers[0]?.slug ?? 'example');
   const [importInput, setImportInput] = useState('');
   const [importCategory, setImportCategory] = useState(CATEGORIES[0].name);
@@ -94,15 +91,21 @@ export default function AdminDashboard() {
     setImportError(null);
     try {
       const normalized = await importFromProvider(importSlug, importInput.trim());
-      const sellCents = applyMarkup(normalized.costCents, DEFAULT_MARKUP_PERCENT);
+      const { sellCents, markupPercent } = priceFromRules(normalized.costCents, importSlug, importCategory);
       const stockTotal = normalized.variants.length ? normalized.variants.reduce((n, v) => n + v.stock, 0) : 999;
-      setAdminRows((r) => [
-        { id: `admin-imp-${Date.now()}`, title: normalized.title, category: importCategory, priceCents: sellCents, stock: stockTotal, status: 'draft' },
-        ...r,
-      ]);
+      setAdminRows(addAdminCatalogRow({
+        title: normalized.title,
+        category: importCategory,
+        priceCents: sellCents,
+        costCents: normalized.costCents,
+        markupPercent,
+        providerSlug: importSlug,
+        stock: stockTotal,
+        status: 'draft',
+      }));
       setImportInput('');
       setShowImport(false);
-      flash(`"${normalized.title}" importado diretamente para o catálogo da Romper Shop.`);
+      flash(`"${normalized.title}" importado com markup de ${markupPercent}% (regras de preço).`);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Falha ao importar produto.');
     } finally {
@@ -125,8 +128,11 @@ export default function AdminDashboard() {
       <section className="mt-10">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="font-display text-2xl font-semibold">Catálogo administrado (dropship direto)</h2>
-          <button onClick={() => setShowImport((s) => !s)} className="rounded-full bg-volt px-5 py-2 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+          <button onClick={() => { setShowImport((s) => !s); setShowBulk(false); }} className="rounded-full bg-volt px-5 py-2 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
             {showImport ? 'Fechar' : 'Importar produto'}
+          </button>
+          <button onClick={() => { setShowBulk((s) => !s); setShowImport(false); }} className="rounded-full border border-line px-5 py-2 text-sm hover:border-volt hover:text-volt transition-colors">
+            {showBulk ? 'Fechar' : 'Importar em massa'}
           </button>
           {note && <span className="font-mono text-xs text-volt">{note}</span>}
         </div>
@@ -166,40 +172,66 @@ export default function AdminDashboard() {
             </label>
             {importError && <p className="text-sm text-ember">{importError}</p>}
             <button type="submit" disabled={importBusy} className="self-start rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors disabled:opacity-60">
-              {importBusy ? 'Importando…' : `Importar (markup de ${DEFAULT_MARKUP_PERCENT}%)`}
+              {importBusy ? 'Importando…' : 'Importar (preço pelas regras)'}
             </button>
           </form>
         )}
 
+        {showBulk && (
+          <BulkImport
+            onImported={(item) => setAdminRows(addAdminCatalogRow({ ...item, status: 'draft' }))}
+          />
+        )}
+
         {adminRows.length > 0 && (
           <div className="mt-4 rounded-xl2 border border-line bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left font-mono text-xs text-fog">
-                  <th className="px-5 py-3 font-normal">PRODUTO</th>
-                  <th className="px-5 py-3 font-normal">CATEGORIA</th>
-                  <th className="px-5 py-3 font-normal text-right">PREÇO</th>
-                  <th className="px-5 py-3 font-normal text-right">ESTOQUE</th>
-                  <th className="px-5 py-3 font-normal">STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminRows.map((r) => (
-                  <tr key={r.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
-                    <td className="px-5 py-3 text-mist">{r.title}</td>
-                    <td className="px-5 py-3 text-fog">{r.category}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{formatBRL(r.priceCents)}</td>
-                    <td className="px-5 py-3 text-right text-fog tabular-nums">{r.stock}</td>
-                    <td className="px-5 py-3">
-                      <span className="rounded-full bg-line px-2.5 py-1 font-mono text-xs text-fog">{r.status === 'active' ? 'ativo' : 'rascunho'}</span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left font-mono text-xs text-fog">
+                    <th className="px-5 py-3 font-normal">PRODUTO</th>
+                    <th className="px-5 py-3 font-normal">CATEGORIA</th>
+                    <th className="px-5 py-3 font-normal text-right">CUSTO</th>
+                    <th className="px-5 py-3 font-normal text-right">PREÇO</th>
+                    <th className="px-5 py-3 font-normal text-right">ESTOQUE</th>
+                    <th className="px-5 py-3 font-normal">STATUS</th>
+                    <th className="px-5 py-3 font-normal" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {adminRows.map((r) => (
+                    <tr key={r.id} className="border-b border-line last:border-0 hover:bg-line/20 transition-colors">
+                      <td className="px-5 py-3 text-mist">{r.title}</td>
+                      <td className="px-5 py-3 text-fog">{r.category}</td>
+                      <td className="px-5 py-3 text-right text-fog tabular-nums">{formatBRL(r.costCents)}</td>
+                      <td className="px-5 py-3 text-right tabular-nums">
+                        {formatBRL(r.priceCents)}
+                        <span className="ml-1 font-mono text-[10px] text-fog">+{r.markupPercent}%</span>
+                      </td>
+                      <td className="px-5 py-3 text-right text-fog tabular-nums">{r.stock}</td>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-1 font-mono text-xs ${r.status === 'active' ? 'bg-volt/15 text-volt' : 'bg-line text-fog'}`}>
+                          {r.status === 'active' ? 'ativo' : 'rascunho'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap text-right">
+                        <button onClick={() => setAdminRows(toggleAdminRowStatus(r.id))} className="text-xs text-fog hover:text-volt transition-colors">
+                          {r.status === 'active' ? 'pausar' : 'ativar'}
+                        </button>
+                        <button onClick={() => setAdminRows(removeAdminRow(r.id))} className="ml-4 text-xs text-fog hover:text-ember transition-colors">
+                          excluir
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>
+
+      <PricingRulesManager />
 
       {/* Vendedores pendentes de aprovação (auto-cadastro via /vender) */}
       {pendingSellers.length > 0 && (

@@ -63,8 +63,8 @@ stub em `recommendationEngine.ts`).
 
 ## 5. Foco — Admin importar fácil
 
-- [ ] Importação em massa (lista de URLs/CSV) com fila de status — L
-- [ ] Regras de precificação automática por fornecedor/categoria — M
+- [x] Importação em massa (lista de URLs/CSV) com fila de status — L
+- [x] Regras de precificação automática por fornecedor/categoria — M
 - [ ] Mapeamento automático de categoria — S
 - [ ] Sincronização agendada de preço/estoque — L *(precisa Supabase + cron)*
 - [ ] Repasse automático de pedido ao fornecedor — L *(precisa Supabase)*
