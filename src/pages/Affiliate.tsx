@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import DashboardShell from '../components/DashboardShell';
 import Stat from '../components/Stat';
 import Reveal from '../components/Reveal';
@@ -42,11 +43,37 @@ export default function Affiliate() {
   };
 
   const link = affiliate ? `${window.location.origin}/?ref=${affiliate.code}` : '';
+  const shareText = affiliate
+    ? `Achei essa loja e achei que você ia curtir 👀 tem de tudo e dá pra pagar na entrega: ${link}`
+    : '';
+
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  useEffect(() => {
+    if (!link) return;
+    QRCode.toDataURL(link, { margin: 1, width: 220, color: { dark: '#1A1A1A', light: '#FFFFFF' } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(''));
+  }, [link]);
 
   const copy = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const [textCopied, setTextCopied] = useState(false);
+  const copyText = async () => {
+    await navigator.clipboard.writeText(shareText);
+    setTextCopied(true);
+    window.setTimeout(() => setTextCopied(false), 2000);
+  };
+
+  const share = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Romper Shop', text: shareText, url: link }); } catch { /* cancelado */ }
+    } else {
+      await copyText();
+    }
   };
 
   if (!affiliate) {
@@ -105,18 +132,88 @@ export default function Affiliate() {
         </div>
       )}
 
-      <section className="mt-10 rounded-xl2 border border-line bg-surface p-6">
-        <p className="font-mono text-xs text-fog tracking-widest mb-3">SEU LINK DE INDICAÇÃO</p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input readOnly value={link} className="flex-1 rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist" />
-          <button onClick={copy} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
-            {copied ? 'Copiado!' : 'Copiar link'}
-          </button>
+      {/* Kit de divulgação */}
+      <section className="mt-10 grid gap-4 lg:grid-cols-[1fr_auto]">
+        <div className="rounded-xl2 border border-line bg-surface p-6">
+          <p className="font-mono text-xs text-fog tracking-widest mb-3">SEU LINK DE INDICAÇÃO</p>
+          <div className="flex min-w-0 flex-col sm:flex-row gap-3">
+            <input readOnly value={link} className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-3 py-2.5 text-sm text-mist" />
+            <button onClick={copy} className="shrink-0 rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+              {copied ? 'Copiado!' : 'Copiar link'}
+            </button>
+          </div>
+
+          <p className="mt-6 font-mono text-xs text-fog tracking-widest mb-3">TEXTO PRONTO PRA COMPARTILHAR</p>
+          <p className="rounded-lg border border-line bg-ink/5 p-4 text-sm text-fog leading-relaxed">{shareText}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button onClick={share} className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink hover:bg-volt-dim transition-colors">
+              Compartilhar
+            </button>
+            <button onClick={copyText} className="rounded-full border border-line px-6 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
+              {textCopied ? 'Texto copiado!' : 'Copiar texto'}
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-line px-6 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors"
+            >
+              WhatsApp
+            </a>
+          </div>
+          <p className="mt-3 text-xs text-fog">
+            Também dá pra indicar um produto específico: abra a página do produto e use o botão
+            "Copiar link de afiliado" lá.
+          </p>
         </div>
-        <p className="mt-3 text-xs text-fog">
-          Também dá pra indicar um produto específico: abra a página do produto e use o botão
-          "Copiar link de afiliado" lá.
-        </p>
+
+        {qrDataUrl && (
+          <div className="rounded-xl2 border border-line bg-surface p-6 text-center">
+            <p className="font-mono text-xs text-fog tracking-widest mb-3">QR CODE</p>
+            <img src={qrDataUrl} alt={`QR code do seu link de afiliado (${affiliate.code})`} className="mx-auto rounded-lg border border-line" width={180} height={180} />
+            <a
+              href={qrDataUrl}
+              download={`romper-afiliado-${affiliate.code}.png`}
+              className="mt-3 inline-block text-xs text-fog hover:text-volt transition-colors"
+            >
+              baixar PNG ↓
+            </a>
+          </div>
+        )}
+      </section>
+
+      {/* Funil */}
+      <section className="mt-8 rounded-xl2 border border-line bg-surface p-6">
+        <p className="font-mono text-xs text-fog tracking-widest mb-4">SEU FUNIL</p>
+        {(() => {
+          const orders = new Set(commissions.map((c) => c.orderId)).size;
+          const conv = affiliate.clicks > 0 ? (orders / affiliate.clicks) * 100 : 0;
+          const earned = affiliate.pendingCents + affiliate.balanceCents;
+          const steps = [
+            { label: 'Cliques no link', value: affiliate.clicks.toLocaleString('pt-BR'), pct: 100 },
+            { label: 'Pedidos indicados', value: orders.toLocaleString('pt-BR'), pct: affiliate.clicks > 0 ? Math.max(4, conv) : 0 },
+            { label: 'Comissão gerada', value: formatBRL(earned), pct: earned > 0 ? Math.max(4, conv) : 0 },
+          ];
+          return (
+            <>
+              <div className="flex flex-col gap-3">
+                {steps.map((s) => (
+                  <div key={s.label} className="flex items-center gap-4">
+                    <span className="w-36 shrink-0 text-sm text-fog">{s.label}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded bg-line">
+                      <div className="h-full rounded bg-volt transition-all" style={{ width: `${s.pct}%` }} />
+                    </div>
+                    <span className="w-24 shrink-0 text-right font-display tabular-nums">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-fog">
+                Conversão: <b className="text-mist">{conv.toFixed(1)}%</b> dos cliques viraram pedido.
+                {affiliate.clicks === 0 && ' Compartilhe seu link para começar a medir.'}
+              </p>
+            </>
+          );
+        })()}
       </section>
 
       <section className="mt-8">

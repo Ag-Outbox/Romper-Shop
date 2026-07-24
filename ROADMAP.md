@@ -72,9 +72,9 @@ stub em `recommendationEngine.ts`).
 
 ## 6. Foco — Afiliados sem atrito
 
-- [ ] Landing pública de recrutamento (`/seja-afiliado`) — M
-- [ ] Kit de divulgação (QR code, compartilhar, texto pronto) — S
-- [ ] Funil no painel (cliques → pedidos → conversão) — M
+- [x] Landing pública de recrutamento (`/seja-afiliado`) — M
+- [x] Kit de divulgação (QR code, compartilhar, texto pronto) — S
+- [x] Funil no painel (cliques → pedidos → conversão) — M
 - [ ] Comissão configurável pelo admin (global/categoria/afiliado) — M
 - [ ] Link de loja (além de produto e home) — S
 - [ ] Onboarding em 1 clique no cadastro — S

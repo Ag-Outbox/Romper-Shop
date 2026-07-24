@@ -14,7 +14,7 @@ export default function SiteFooter() {
           <div className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-sm text-ink/60">
             <a href="#" className="hover:text-volt transition-colors">Sobre</a>
             <Link to="/vender" className="hover:text-volt transition-colors">Vender</Link>
-            <Link to="/afiliado" className="hover:text-volt transition-colors">Afiliados</Link>
+            <Link to="/seja-afiliado" className="hover:text-volt transition-colors">Afiliados</Link>
             <Link to="/ajuda" className="hover:text-volt transition-colors">Ajuda</Link>
             <a href="#" className="hover:text-volt transition-colors">Privacidade</a>
           </div>
