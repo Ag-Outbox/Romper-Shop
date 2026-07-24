@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /conta
+Disallow: /vendedor
+Disallow: /admin
+Disallow: /checkout
+Disallow: /mensagens

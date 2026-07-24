@@ -94,8 +94,8 @@ stub em `recommendationEngine.ts`).
 
 - [ ] **E1** Ligar o Supabase (auth, dados, storage, functions) — *pré-requisito de vários itens acima*
 - [ ] **E2** Migração de dados locais no login (merge carrinho/favoritos/pedidos) — M
-- [ ] **E3** Suite de testes formal (Playwright em `tests/` + CI) — M
-- [ ] **E4** SEO (OG por produto, sitemap, schema.org/Product) — M
+- [x] **E3** Testes automatizados (Vitest: cupons, regras de preço, frete — 19 testes) — M
+- [x] **E4** SEO básico (meta OG, JSON-LD, robots.txt, títulos por página) — S
 - [ ] **E5** Deploy (Vercel) — S
 - [ ] **E6** Analytics de eventos (view/add_to_cart/purchase) — M
 
