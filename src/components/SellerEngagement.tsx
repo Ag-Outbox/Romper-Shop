@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { listQuestionsForSeller, answerQuestion } from '../lib/qna';
 import { listReviewsForSeller, addSellerReply } from '../lib/reviewsStore';
+import { listSellerRmas, resolveRma } from '../lib/rma';
+import { formatBRL } from '../lib/format';
 
 /* Painel do vendedor: perguntas dos compradores para responder e avaliações
    dos produtos com resposta pública. */
@@ -26,13 +28,58 @@ function ReplyForm({ placeholder, onSubmit }: { placeholder: string; onSubmit: (
 export default function SellerEngagement({ storeSlug }: { storeSlug: string }) {
   const [questions, setQuestions] = useState(() => listQuestionsForSeller(storeSlug));
   const [reviews, setReviews] = useState(() => listReviewsForSeller(storeSlug));
+  const [rmas, setRmas] = useState(() => listSellerRmas(storeSlug));
   const pendingQ = questions.filter((q) => !q.answer).length;
   const pendingR = reviews.filter((r) => !r.sellerReply).length;
+  const pendingRma = rmas.filter((r) => r.status === 'requested').length;
 
-  if (questions.length === 0 && reviews.length === 0) return null;
+  if (questions.length === 0 && reviews.length === 0 && rmas.length === 0) return null;
 
   return (
     <>
+      {rmas.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-2xl font-semibold">
+            Cancelamentos e devoluções
+            {pendingRma > 0 && <span className="ml-3 rounded-full bg-ember/15 px-2.5 py-1 font-mono text-xs text-ember align-middle">{pendingRma} pendente{pendingRma > 1 ? 's' : ''}</span>}
+          </h2>
+          <div className="mt-5 flex flex-col gap-3">
+            {rmas.map((r) => (
+              <div key={r.id} className="rounded-xl2 border border-line bg-surface p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-sm text-mist">{r.orderId}</p>
+                    <p className="mt-1 text-xs text-fog">
+                      {r.type === 'cancel' ? 'Cancelamento' : 'Devolução'} · {formatBRL(r.amountCents)} · {new Date(r.createdAt).toLocaleDateString('pt-BR')}
+                    </p>
+                    <p className="mt-1 text-sm text-fog">“{r.reason}”</p>
+                  </div>
+                  {r.status === 'requested' ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { resolveRma(r.id, true); setRmas(listSellerRmas(storeSlug)); }}
+                        className="rounded-full bg-volt px-4 py-1.5 text-xs font-semibold text-ink hover:bg-volt-dim transition-colors"
+                      >
+                        Aprovar e reembolsar
+                      </button>
+                      <button
+                        onClick={() => { resolveRma(r.id, false); setRmas(listSellerRmas(storeSlug)); }}
+                        className="rounded-full border border-line px-4 py-1.5 text-xs hover:border-ember hover:text-ember transition-colors"
+                      >
+                        Recusar
+                      </button>
+                    </div>
+                  ) : (
+                    <span className={`rounded-full px-3 py-1 font-mono text-xs ${r.status === 'approved' ? 'bg-volt/15 text-volt' : 'bg-ember/15 text-ember'}`}>
+                      {r.status === 'approved' ? 'reembolsado' : 'recusado'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {questions.length > 0 && (
         <section className="mt-10">
           <h2 className="font-display text-2xl font-semibold">

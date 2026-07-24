@@ -45,7 +45,7 @@ stub em `recommendationEngine.ts`).
 - [ ] **B3** Frete real por CEP/regras da loja — M
 - [x] **B4** Múltiplos endereços salvos — M
 - [x] **B5** Rastreamento com timeline — M
-- [ ] **B6** Cancelamento/devolução/reembolso (RMA) — L
+- [x] **B6** Cancelamento/devolução (RMA) — L *(reembolso real precisa do gateway, Fase 2)*
 - [ ] **B7** Confirmação COD por SMS/WhatsApp — M *(precisa Supabase + provedor SMS)*
 - [ ] **B8** Carteira/Cashback — M
 

@@ -3,6 +3,7 @@ import TopBar from '../components/TopBar';
 import SiteFooter from '../components/SiteFooter';
 import Reveal from '../components/Reveal';
 import OrderTimeline from '../components/OrderTimeline';
+import RmaBox from '../components/RmaBox';
 import { getOrder, SUB_ORDER_STATUS_LABEL } from '../lib/orders';
 import { usePageMeta } from '../lib/usePageMeta';
 import { formatBRL } from '../lib/format';
@@ -122,6 +123,8 @@ export default function OrderConfirmation() {
                 </summary>
                 <OrderTimeline sub={s} createdAt={order.createdAt} isCod={order.isCod} />
               </details>
+
+              <RmaBox order={order} sub={s} />
             </div>
           ))}
         </section>
