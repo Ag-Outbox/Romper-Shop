@@ -158,7 +158,7 @@ export interface Coupon {
 /** Papel-alvo da notificação — casa com Role do auth (buyer/seller/admin). */
 export type NotificationAudienceRole = 'buyer' | 'seller' | 'admin';
 
-export type NotificationKind = 'order' | 'question' | 'review' | 'store' | 'payout';
+export type NotificationKind = 'order' | 'question' | 'review' | 'store' | 'payout' | 'chat';
 
 export interface AppNotification {
   id: string;
@@ -170,6 +170,25 @@ export interface AppNotification {
   href?: string;              // rota para onde o clique leva
   read: boolean;
   createdAt: string;
+}
+
+/* ---- Chat comprador↔vendedor (mock 1 comprador por dispositivo) ---- */
+
+export interface ChatMessage {
+  id: string;
+  from: 'buyer' | 'seller';
+  body: string;
+  at: string; // ISO
+}
+
+export interface Conversation {
+  id: string;             // = storeSlug (1 conversa por loja neste dispositivo)
+  storeSlug: string;
+  storeName: string;
+  messages: ChatMessage[];
+  /** ISO da última leitura de cada lado (para contagem de não lidas). */
+  lastReadBuyer: string;
+  lastReadSeller: string;
 }
 
 /* ---- Avaliações (só com compra verificada, 1 por comprador/produto) ---- */

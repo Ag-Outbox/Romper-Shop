@@ -40,8 +40,14 @@ export default function Account() {
         </div>
       </Reveal>
 
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link to="/mensagens" className="rounded-full border border-line px-5 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
+          💬 Mensagens
+        </Link>
+      </div>
+
       {user?.role === 'buyer' && (
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-3 flex flex-wrap gap-3">
           <Link to="/vender" className="rounded-full border border-line px-5 py-2.5 text-sm hover:border-volt hover:text-volt transition-colors">
             Abrir minha loja →
           </Link>

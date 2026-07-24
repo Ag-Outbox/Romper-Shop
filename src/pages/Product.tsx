@@ -531,7 +531,15 @@ export default function Product() {
                   </p>
                 </div>
               </div>
-              <Link to={`/loja/${product.seller.slug}`} className="text-sm text-fog hover:text-volt transition-colors">ver loja →</Link>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <Link to={`/loja/${product.seller.slug}`} className="text-sm text-fog hover:text-volt transition-colors">ver loja →</Link>
+                <Link
+                  to={`/mensagens?loja=${product.seller.slug}&nome=${encodeURIComponent(product.seller.name)}`}
+                  className="text-sm text-fog hover:text-volt transition-colors"
+                >
+                  💬 conversar
+                </Link>
+              </div>
             </div>
           </div>
         </div>

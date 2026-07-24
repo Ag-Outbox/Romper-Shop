@@ -25,6 +25,7 @@ const Account = lazy(() => import('./pages/Account'));
 const SellerDashboard = lazy(() => import('./pages/SellerDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const BecomeSeller = lazy(() => import('./pages/BecomeSeller'));
+const Messages = lazy(() => import('./pages/Messages'));
 const Affiliate = lazy(() => import('./pages/Affiliate'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -55,6 +56,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/vendedor" element={<RequireAuth role="seller"><SellerDashboard /></RequireAuth>} />
             <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboard /></RequireAuth>} />
             <Route path="/vender" element={<RequireAuth><BecomeSeller /></RequireAuth>} />
+            <Route path="/mensagens" element={<RequireAuth><Messages /></RequireAuth>} />
             <Route path="/afiliado" element={<RequireAuth><Affiliate /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -192,6 +192,9 @@ export default function SellerDashboard() {
         >
           Solicitar saque
         </button>
+        <Link to="/mensagens" className="rounded-full border border-line px-5 py-2 text-sm hover:border-volt hover:text-volt transition-colors">
+          💬 Mensagens
+        </Link>
         {payoutNote && <span className="font-mono text-xs text-volt">{payoutNote}</span>}
       </div>
 

@@ -20,6 +20,7 @@ const ICON: Record<NotificationKind, string> = {
   review: '★',
   store: '🏪',
   payout: '💸',
+  chat: '✉️',
 };
 
 /** "agora", "há 5 min", "há 2 h", "há 3 d" — tempo relativo curto em pt-BR. */
